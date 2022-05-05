@@ -1,4 +1,4 @@
-from bsp import GBSPChunk
+from gbsp import GBSPChunk
 from struct import pack
 
 

@@ -1,6 +1,6 @@
-from bsp import GBSPChunk
+from gbsp import GBSPChunk
 from struct import pack
-from main_quake import IBSP_TYPES
+from read_ibsp import IBSP_TYPES
 
 
 def read_gbsp_chunk(f):
