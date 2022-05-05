@@ -1,4 +1,5 @@
-from bsp import HeaderLump
+from gbsp import HeaderLump
+import sys
 
 IBSP_TYPES = {
     0: "IBSP_ENTITIES",
@@ -22,6 +23,8 @@ IBSP_TYPES = {
     18: "AREA_PORTALS"
 }
 
+
+# Read IBSP header lump
 def read_header_lump(f, i):
     lump_bytes = f.read(8)
     header_lump = HeaderLump.from_bytes(lump_bytes)
@@ -30,7 +33,12 @@ def read_header_lump(f, i):
 
 
 if __name__ == '__main__':
-    file = open('bsp/test_quake.bsp', 'rb')
+    if len(sys.argv) < 2:
+        print('Usage: python read_ibsp.py [filename.bsp]')
+        exit(-1)
+
+    path = sys.argv[1]
+    file = open(path, 'rb')
 
     lumps = []
 
@@ -40,8 +48,8 @@ if __name__ == '__main__':
 
     print("type: {}".format(ident))
     print("version: {}".format(version))
-    # read lump dictionary
 
+    # read lump dictionary
     for i in range(19):
         current_lump = read_header_lump(file, i)
         lumps.append(current_lump)
