@@ -21,7 +21,6 @@ class GBSPChunk:
         self.bytes = bytes
 
     def read_bytes(self, file):
-        print('chunk of type {} reading {} bytes'.format(self.type, self.size * self.elements))
         self.bytes = file.read(self.size * self.elements)
 
     def type_string(self):
