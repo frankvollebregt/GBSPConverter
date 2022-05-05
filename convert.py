@@ -1,42 +1,41 @@
-from bsp import GBSPChunk
+from gbsp import GBSPChunk
 from struct import pack
 
 
-def convert_to_ibsp_full(bsp):
+# Convert the map of GBSP chunk objects to a map of IBSP data
+def convert_to_ibsp(gbsp):
     print('Converting...')
     new_bsp = {}
 
     # To create texture_info, we need textures and texture_info from the gbsp data
-    gbsp_tex_info: GBSPChunk = bsp[17]
-    gbsp_tex: GBSPChunk = bsp[18]
+    gbsp_tex_info: GBSPChunk = gbsp[17]
+    gbsp_tex: GBSPChunk = gbsp[18]
 
-    texture_info = b''
-
-    gbsp_faces: GBSPChunk = bsp[11]
-    gbsp_verts: GBSPChunk = bsp[14]
-    gbsp_vert_index: GBSPChunk = bsp[13]
-    gbsp_planes: GBSPChunk = bsp[10]
+    gbsp_faces: GBSPChunk = gbsp[11]
+    gbsp_verts: GBSPChunk = gbsp[14]
+    gbsp_vert_index: GBSPChunk = gbsp[13]
+    gbsp_planes: GBSPChunk = gbsp[10]
 
     # First, we read the faces to find out the vert index and number of verts
     # Then, we can use these verts to create edges between them
     all_edges = b''
     all_faces = b''
 
-    print('writing all {} vertices (1 to 1)'.format(gbsp_verts.elements))
+    print('convert all vertices (1 to 1)'.format(gbsp_verts.elements))
     new_bsp['vertices'] = {
         'elements': gbsp_verts.elements,
         'bytes': gbsp_verts.bytes,
-        'size': 12  # size of 12 each
+        'size': 12,
     }
 
-    print('writing all planes (1 to 1)')
+    print('convert all planes (1 to 1)')
     new_bsp['planes'] = {
         'elements': gbsp_planes.elements,
         'bytes': gbsp_planes.bytes,
         'size': 20,
     }
 
-    print('gonna do faces now')
+    print('converting faces and constructing edges')
     for face_index in range(gbsp_faces.elements):
         # face_index = 0
         offset = face_index * gbsp_faces.size
@@ -51,7 +50,6 @@ def convert_to_ibsp_full(bsp):
         # now that we know the index of the vertex, we can get the vertex indices and use those to create
         # the edges
         vert_index_indices = [first_vert_index + j for j in range(num_verts)]
-        print(vert_index_indices)
         # TODO be smarter about this, to prevent duplicates?
         for index in range(len(vert_index_indices)):
             if index == 0:
@@ -59,21 +57,16 @@ def convert_to_ibsp_full(bsp):
                 first_edge_index = int(len(all_edges) / 4)
             vert_index_a = gbsp_vert_index.bytes[4*vert_index_indices[index]:4*vert_index_indices[index]+4]
             dest = (index+1) % len(vert_index_indices)
-            # print('dbg: from {} to {}'.format(index, dest))
             vert_index_b = gbsp_vert_index.bytes[4*vert_index_indices[dest]:4*vert_index_indices[dest] + 4]
             point_a = int.from_bytes(vert_index_a, 'little')
-            # b_index = (index+1) % len(vert_index_indices)
             point_b = int.from_bytes(vert_index_b, 'little')
-            print('vert index {} results in edge from {} to {}'.format(vert_index_indices[index], point_a, point_b))
-            # all_edges += point_a + point_b
             all_edges += pack("<hh", point_a, point_b)
 
         # Now store the face in the all_faces list
-        # print('number of edges for this face {}, first edge is {}'.format(num_verts, first_edge_index))
         all_faces += pack("<HHIHHII", plane, 0, first_edge_index, num_verts, tex_info, 0, 0)
 
 
-    print('writing edges')
+    print('convert edges')
     num_edges = int(len(all_edges)/4)
     new_bsp['edges'] = {
         'elements': num_edges,
@@ -86,21 +79,21 @@ def convert_to_ibsp_full(bsp):
     for face_edge in range(num_edges):
         face_edges += pack("<I", face_edge)
 
-    print('writing face edges (freebie)')
+    print('convert face edges (freebie)')
     new_bsp['face_edges'] = {
         'elements': num_edges,
         'bytes': face_edges,
         'size': 4,
     }
 
-    print('writing faces')
+    print('convert faces')
     new_bsp['faces'] = {
         'elements': gbsp_faces.elements,
         'bytes': all_faces,
         'size': 20,
     }
 
-    print('writing texture info')
+    print('convert texture info (with hard-coded texture name)')
     texture_info = b''
     for index in range(gbsp_tex_info.elements):
         offset = index * gbsp_tex_info.size
@@ -125,8 +118,8 @@ def convert_to_ibsp_full(bsp):
 
     print('Conversion is done!')
 
-    for k, v in new_bsp.items():
-        print(v['elements'])
-        print(v['size'])
-        print(len(v['bytes']))
+    # for k, v in new_bsp.items():
+    #     print(v['elements'])
+    #     print(v['size'])
+    #     print(len(v['bytes']))
     return new_bsp
