@@ -6,6 +6,9 @@ The BSP files are binary files containing information about geometry, which are 
 ## Different BSP versions
 The header of a BSP file contains a code identifying it as such, which is `GBSP` for Genesis3D, `IBSP` for Quake and `VBSP` for Valve. The scripts in this repository can help you to convert the meshes in a GBSP file to the IBSP format. Since the way they are stored differs between standards, this is not as simple as changing the code and renaming the file. Luckily, some helpful online sources are available.
 
+Thanks to Max McGuire for the document about the [Quake 2 BSP format](https://www.flipcode.com/archives/Quake_2_BSP_File_Format.shtml)
+I've also been referencing the Genesis3D source code, to figure out how to read the GBSP file, which can be found in the [RealityFactory Github repo](https://github.com/RealityFactory/Genesis3D).
+
 ## How to use
 Simply clone or download this repository, and call the scripts therein with Python 3.x.
 ```
