@@ -110,7 +110,7 @@ def convert_to_ibsp_single(bsp):
     my_text = texture_info[40:72].decode('ascii')
     print(my_text)
 
-    f = open('test/test_file.bin', 'wb')
+    f = open('../test/test_file.bin', 'wb')
     f.write(texture_info)
     f.close()
 

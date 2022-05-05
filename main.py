@@ -1,7 +1,6 @@
 from bsp import BSPChunk
 from struct import pack
 from main_quake import IBSP_TYPES
-from simple_test import convert_to_ibsp_single
 from full_test import convert_to_ibsp_full
 
 

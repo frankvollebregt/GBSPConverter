@@ -27,7 +27,7 @@ if __name__ == '__main__':
     #
     # print(gbsp)
 
-    out_file = open('bsp/test_quake_single.bsp', 'wb')
+    out_file = open('../bsp/test_quake_single.bsp', 'wb')
 
     # first, write the header
     out_file.write(b'IBSP')            # identifier
@@ -39,37 +39,37 @@ if __name__ == '__main__':
     bytes_to_write = []
     for i in range(19):
         if IBSP_TYPES[i] == 'IBSP_PLANES':
-            planes_file = open('test/plane.bin', 'rb')
+            planes_file = open('../test/plane.bin', 'rb')
             planes = planes_file.read()
             out_file.write(pack("<II", pointer, 20*1))
             pointer += 20*1
             bytes_to_write.append(planes)
         elif IBSP_TYPES[i] == 'IBSP_VERTICES':
-            verts_file = open('test/verts.bin', 'rb')
+            verts_file = open('../test/verts.bin', 'rb')
             verts = verts_file.read()
             out_file.write(pack("<II", pointer, 12*3))
             pointer += 12*3
             bytes_to_write.append(verts)
         elif IBSP_TYPES[i] == 'IBSP_FACES':
-            faces_file = open('test/face.bin', 'rb')
+            faces_file = open('../test/face.bin', 'rb')
             faces = faces_file.read()
             out_file.write(pack("<II", pointer, 20 * 1))
             pointer += 20 * 1
             bytes_to_write.append(faces)
         elif IBSP_TYPES[i] == 'IBSP_EDGES':
-            edge_file = open('test/edge.bin', 'rb')
+            edge_file = open('../test/edge.bin', 'rb')
             edges = edge_file.read()
             out_file.write(pack("<II", pointer, 4 * 3))
             pointer += 4 * 3
             bytes_to_write.append(edges)
         elif IBSP_TYPES[i] == 'IBSP_FACE_EDGE_TABLE':
-            face_edge_file = open('test/face_edge.bin', 'rb')
+            face_edge_file = open('../test/face_edge.bin', 'rb')
             face_edges = face_edge_file.read()
             out_file.write(pack("<II", pointer, 4 * 3))
             pointer += 4 * 3
             bytes_to_write.append(face_edges)
         elif IBSP_TYPES[i] == 'IBSP_TEXTURE_INFORMATION':
-            texture_file = open('test/tex.bin', 'rb')
+            texture_file = open('../test/tex.bin', 'rb')
             textures = texture_file.read()
             out_file.write(pack("<II", pointer, 76 * 1))
             pointer += 76 * 1
