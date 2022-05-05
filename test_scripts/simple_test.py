@@ -1,4 +1,4 @@
-from bsp import BSPChunk
+from bsp import GBSPChunk
 from struct import pack
 
 
@@ -7,14 +7,14 @@ def convert_to_ibsp_single(bsp):
     new_bsp = {}
 
     # To create texture_info, we need textures and texture_info from the gbsp data
-    gbsp_tex_info: BSPChunk = bsp[17]
-    gbsp_tex: BSPChunk = bsp[18]
+    gbsp_tex_info: GBSPChunk = bsp[17]
+    gbsp_tex: GBSPChunk = bsp[18]
 
     texture_info = b''
 
     gbsp_faces = bsp[11]
-    gbsp_verts: BSPChunk = bsp[2]
-    gbsp_planes: BSPChunk = bsp[10]
+    gbsp_verts: GBSPChunk = bsp[2]
+    gbsp_planes: GBSPChunk = bsp[10]
 
     # First, we read the faces to find out the vert index and number of verts
     # Then, we can use these verts to create edges between them

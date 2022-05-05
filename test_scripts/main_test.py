@@ -1,11 +1,11 @@
-from bsp import BSPChunk
+from bsp import GBSPChunk
 from struct import pack
 from main_quake import IBSP_TYPES
 
 
 def read_gbsp_chunk(f):
     gbsp_bytes = f.read(12)
-    chunk = BSPChunk.from_bytes(gbsp_bytes)
+    chunk = GBSPChunk.from_bytes(gbsp_bytes)
     chunk.read_bytes(f)
     return chunk
 

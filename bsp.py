@@ -1,5 +1,5 @@
 # Identifies and describes the following block of data
-class BSPChunk:
+class GBSPChunk:
     def __init__(self, type, size, elements, is_vbsp=False):
         self.type = type
         self.size = size
