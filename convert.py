@@ -1,3 +1,4 @@
+import struct
 from math import ceil
 
 from gbsp import GBSPChunk
@@ -106,10 +107,12 @@ def convert_to_ibsp(gbsp, folder_name):
         offset = index * gbsp_tex_info.size
 
         cur_bytes = gbsp_tex_info.bytes[offset:offset + gbsp_tex_info.size]
-        u_axis = cur_bytes[0:12]
-        v_axis = cur_bytes[12:24]
-        u_offset = cur_bytes[24:28]
-        v_offset = cur_bytes[28:32]
+        u_x, u_y, u_z = struct.unpack('fff', cur_bytes[0:12])
+        v_x, v_y, v_z = struct.unpack('fff', cur_bytes[12:24])
+        u_offset = struct.unpack('f', cur_bytes[24:28])[0]
+        v_offset = struct.unpack('f', cur_bytes[28:32])[0]
+        u_scale = struct.unpack('f', cur_bytes[32:36])[0]
+        v_scale = struct.unpack('f', cur_bytes[36:40])[0]
         texture = int.from_bytes(cur_bytes[60:64], 'little')
 
         # grab the texture name
@@ -128,7 +131,7 @@ def convert_to_ibsp(gbsp, folder_name):
         # write_wal(bytes=tex_bytes, width=tex_width, height=tex_height, name=texture_name, folder=folder_name)
         write_bitmap(my_bytes=tex_bytes, width=int.from_bytes(tex_width, 'little'), height=int.from_bytes(tex_height, 'little'), name=texture_name.decode('utf-8').rstrip('\x00'), palette=tex_palette)
 
-        texture_info += u_axis + u_offset + v_axis + v_offset + pack("<II", 0, 0)
+        texture_info += pack('<fff', u_x / u_scale, u_y / u_scale, u_z / u_scale) + pack('<f', u_offset) + pack('<fff', v_x / v_scale, v_y / v_scale, v_z / v_scale) + pack('<f', v_offset) + pack("<II", 0, 0)
         texture_info += texture_name
         texture_info += pack("<I", 0)
 
