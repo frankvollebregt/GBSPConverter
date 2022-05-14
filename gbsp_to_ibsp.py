@@ -39,7 +39,12 @@ if __name__ == '__main__':
     out_path = path.split('.')[0] + '_ibsp.' + path.split('.')[1]
     if len(sys.argv) >= 3:
         out_path = sys.argv[2]
-    folder_name = out_path[:out_path.rindex('/')]
+
+    # output to the correct folder
+    if '/' in out_path:
+        folder_name = out_path[:out_path.rindex('/')]
+    else:
+        folder_name = ''
 
     # convert GBSP data to the correct IBSP data
     ibsp_data = convert_to_ibsp(gbsp, folder_name=folder_name)

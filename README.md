@@ -9,8 +9,12 @@ The header of a BSP file contains a code identifying it as such, which is `GBSP`
 Thanks to Max McGuire for the document about the [Quake 2 BSP format](https://www.flipcode.com/archives/Quake_2_BSP_File_Format.shtml)
 I've also been referencing the Genesis3D source code, to figure out how to read the GBSP file, which can be found in the [RealityFactory Github repo](https://github.com/RealityFactory/Genesis3D).
 
+## Set up
+- clone or download this repository
+- ensure you have Python 3.x installed
+- install Pillow (`pip install pillow`)
+- you are now ready to run the scripts
 ## How to use
-Simply clone or download this repository, and call the scripts therein with Python 3.x.
 ```
 python gbsp_to_ibsp.py path/to/my_gbsp_file.bsp
 ```
