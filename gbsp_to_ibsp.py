@@ -34,8 +34,7 @@ if __name__ == '__main__':
     path = sys.argv[1]
     gbsp = read_gbsp_file(path)
 
-    print(gbsp[19].size)
-    print(gbsp[19].elements)
+    print('{}, {}, {}'.format(gbsp[23].elements, gbsp[23].size, gbsp[23].type))
 
     out_path = path.split('.')[0] + '_ibsp.' + path.split('.')[1]
     if len(sys.argv) >= 3:

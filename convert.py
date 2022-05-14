@@ -19,6 +19,7 @@ def convert_to_ibsp(gbsp, folder_name):
     gbsp_vert_index: GBSPChunk = gbsp[13]
     gbsp_planes: GBSPChunk = gbsp[10]
     gbsp_texdata: GBSPChunk = gbsp[19]
+    gbsp_palette: GBSPChunk = gbsp[23]
 
     # First, we read the faces to find out the vert index and number of verts
     # Then, we can use these verts to create edges between them
@@ -98,7 +99,7 @@ def convert_to_ibsp(gbsp, folder_name):
         'size': 20,
     }
 
-    print('convert texture info (with hard-coded texture name)')
+    print('convert texture info (with textures as well!)')
     texture_info = b''
 
     for index in range(gbsp_tex_info.elements):
@@ -117,12 +118,15 @@ def convert_to_ibsp(gbsp, folder_name):
         tex_width = tex_bytes[36:40]
         tex_height = tex_bytes[40:44]
         tex_offset = int.from_bytes(tex_bytes[44:48], 'little')
-        # tex_palette = int.from_bytes(tex_bytes[48:52], 'little')
-        # print('palette {}'.format(tex_palette))
+
+        # read the correct palette for the texture
+        tex_palette_index = int.from_bytes(tex_bytes[48:52], 'little')
+        tex_palette = gbsp_palette.bytes[gbsp_palette.size * tex_palette_index:gbsp_palette.size * (tex_palette_index+1)]
 
         # write the texture bitmap file
         tex_bytes = gbsp_texdata.bytes[tex_offset:tex_offset+ceil(int.from_bytes(tex_width, 'little')*int.from_bytes(tex_height, 'little')*(85/64))]
-        write_wal(bytes=tex_bytes, width=tex_width, height=tex_height, name=texture_name, folder=folder_name)
+        # write_wal(bytes=tex_bytes, width=tex_width, height=tex_height, name=texture_name, folder=folder_name)
+        write_bitmap(my_bytes=tex_bytes, width=int.from_bytes(tex_width, 'little'), height=int.from_bytes(tex_height, 'little'), name=texture_name.decode('utf-8').rstrip('\x00'), palette=tex_palette)
 
         texture_info += u_axis + u_offset + v_axis + v_offset + pack("<II", 0, 0)
         texture_info += texture_name
