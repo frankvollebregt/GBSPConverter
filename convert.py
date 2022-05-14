@@ -1,9 +1,12 @@
+from math import ceil
+
 from gbsp import GBSPChunk
 from struct import pack
+from textures import write_bitmap, write_wal
 
 
 # Convert the map of GBSP chunk objects to a map of IBSP data
-def convert_to_ibsp(gbsp):
+def convert_to_ibsp(gbsp, folder_name):
     print('Converting...')
     new_bsp = {}
 
@@ -15,6 +18,7 @@ def convert_to_ibsp(gbsp):
     gbsp_verts: GBSPChunk = gbsp[14]
     gbsp_vert_index: GBSPChunk = gbsp[13]
     gbsp_planes: GBSPChunk = gbsp[10]
+    gbsp_texdata: GBSPChunk = gbsp[19]
 
     # First, we read the faces to find out the vert index and number of verts
     # Then, we can use these verts to create edges between them
@@ -45,6 +49,7 @@ def convert_to_ibsp(gbsp):
         first_vert_index = int.from_bytes(cur_bytes[0:4], 'little')
         num_verts = int.from_bytes(cur_bytes[4:8], 'little')
         plane = int.from_bytes(cur_bytes[8:12], 'little')
+        plane_side = int.from_bytes(cur_bytes[12:16], 'little')
         tex_info = int.from_bytes(cur_bytes[16:20], 'little')
 
         # now that we know the index of the vertex, we can get the vertex indices and use those to create
@@ -63,7 +68,7 @@ def convert_to_ibsp(gbsp):
             all_edges += pack("<hh", point_a, point_b)
 
         # Now store the face in the all_faces list
-        all_faces += pack("<HHIHHII", plane, 0, first_edge_index, num_verts, tex_info, 0, 0)
+        all_faces += pack("<HHIHHII", plane, plane_side, first_edge_index, num_verts, tex_info, 0, 0)
 
 
     print('convert edges')
@@ -95,6 +100,7 @@ def convert_to_ibsp(gbsp):
 
     print('convert texture info (with hard-coded texture name)')
     texture_info = b''
+
     for index in range(gbsp_tex_info.elements):
         offset = index * gbsp_tex_info.size
 
@@ -103,11 +109,23 @@ def convert_to_ibsp(gbsp):
         v_axis = cur_bytes[12:24]
         u_offset = cur_bytes[24:28]
         v_offset = cur_bytes[28:32]
+        texture = int.from_bytes(cur_bytes[60:64], 'little')
 
-        # texture_info += u_axis + u_offset + v_axis + v_offset + pack("<II", 0, 0)
+        # grab the texture name
+        tex_bytes = gbsp_tex.bytes[texture * gbsp_tex.size:(texture+1) * gbsp_tex.size]
+        texture_name = tex_bytes[0:32]
+        tex_width = tex_bytes[36:40]
+        tex_height = tex_bytes[40:44]
+        tex_offset = int.from_bytes(tex_bytes[44:48], 'little')
+        # tex_palette = int.from_bytes(tex_bytes[48:52], 'little')
+        # print('palette {}'.format(tex_palette))
+
+        # write the texture bitmap file
+        tex_bytes = gbsp_texdata.bytes[tex_offset:tex_offset+ceil(int.from_bytes(tex_width, 'little')*int.from_bytes(tex_height, 'little')*(85/64))]
+        write_wal(bytes=tex_bytes, width=tex_width, height=tex_height, name=texture_name, folder=folder_name)
+
         texture_info += u_axis + u_offset + v_axis + v_offset + pack("<II", 0, 0)
-        texture_info += b'mytexture'
-        texture_info += b''.join([pack("<B", 0) for my_i in range(23)])  # pad the rest of the texture String with 0s
+        texture_info += texture_name
         texture_info += pack("<I", 0)
 
     new_bsp['texture_info'] = {

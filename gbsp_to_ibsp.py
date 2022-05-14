@@ -34,14 +34,18 @@ if __name__ == '__main__':
     path = sys.argv[1]
     gbsp = read_gbsp_file(path)
 
-    # convert GBSP data to the correct IBSP data
-    ibsp_data = convert_to_ibsp(gbsp)
-
-    print("IBSP lumps to write: " + "".join([key + ', ' for key, value in ibsp_data.items()]))
+    print(gbsp[19].size)
+    print(gbsp[19].elements)
 
     out_path = path.split('.')[0] + '_ibsp.' + path.split('.')[1]
     if len(sys.argv) >= 3:
         out_path = sys.argv[2]
+    folder_name = out_path[:out_path.rindex('/')]
+
+    # convert GBSP data to the correct IBSP data
+    ibsp_data = convert_to_ibsp(gbsp, folder_name=folder_name)
+
+    print("IBSP lumps to write: " + "".join([key + ', ' for key, value in ibsp_data.items()]))
 
     out_file = open(out_path, 'w+b')
     print('writing results to {}'.format(out_path))
