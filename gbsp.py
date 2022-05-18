@@ -34,32 +34,32 @@ class GBSPChunk:
 
 
 GBSP_TYPES = {
-    0: "GBSP_CHUNK_HEADER",
+    0: "GBSP_CHUNK_HEADER",         # used
     1: "GBSP_CHUNK_MODELS",
-    2: "GBSP_CHUNK_NODES",
+    2: "GBSP_CHUNK_NODES",          # used (untested)
     3: "GBSP_CHUNK_BNODES",
-    4: "GBSP_CHUNK_LEAFS",
+    4: "GBSP_CHUNK_LEAFS",          # used (untested)
     5: "GBSP_CHUNK_CLUSTERS",
     6: "GBSP_CHUNK_AREAS",
     7: "GBSP_CHUNK_AREA_PORTALS",
     8: "GBSP_CHUNK_LEAF_SIDES",
     9: "GBSP_CHUNK_PORTALS",
-    10: "GBSP_CHUNK_PLANES",
-    11: "GBSP_CHUNK_FACES",
-    12: "GBSP_CHUNK_LEAF_FACES",
-    13: "GBSP_CHUNK_VERT_INDEX",
-    14: "GBSP_CHUNK_VERTS",
+    10: "GBSP_CHUNK_PLANES",        # used
+    11: "GBSP_CHUNK_FACES",         # used
+    12: "GBSP_CHUNK_LEAF_FACES",    # used (untested)
+    13: "GBSP_CHUNK_VERT_INDEX",    # used
+    14: "GBSP_CHUNK_VERTS",         # used
     15: "GBSP_CHUNK_RGB_VERTS",
     16: "GBSP_CHUNK_ENTDATA",
-    17: "GBSP_CHUNK_TEXINFO",
-    18: "GBSP_CHUNK_TEXTURES",
-    19: "GBSP_CHUNK_TEXDATA",
+    17: "GBSP_CHUNK_TEXINFO",       # used
+    18: "GBSP_CHUNK_TEXTURES",      # used
+    19: "GBSP_CHUNK_TEXDATA",       # used
     20: "GBSP_CHUNK_LIGHTDATA",
     21: "GBSP_CHUNK_VISDATA",
     22: "GBSP_CHUNK_SKYDATA",
-    23: "GBSP_CHUNK_PALETTES",
+    23: "GBSP_CHUNK_PALETTES",      # used
     24: "GBSP_CHUNK_MOTIONS",
-    0xffff: "GBSP_CHUNK_END",
+    0xffff: "GBSP_CHUNK_END",       # used
 }
 
 
