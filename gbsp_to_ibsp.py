@@ -34,6 +34,8 @@ if __name__ == '__main__':
     path = sys.argv[1]
     gbsp = read_gbsp_file(path)
 
+    print('# of motions: {} (of size {})'.format(gbsp[24].elements, gbsp[24].size))
+
     print('{}, {}, {}'.format(gbsp[23].elements, gbsp[23].size, gbsp[23].type))
 
     out_path = path.split('.')[0] + '_ibsp.' + path.split('.')[1]
@@ -99,6 +101,24 @@ if __name__ == '__main__':
             pointer += texture_info['size'] * texture_info['elements']
             bytes_to_write.append(texture_info['bytes'])
             print("wrote {} texture_info ({} bytes)".format(texture_info['elements'], len(texture_info['bytes'])))
+        elif IBSP_TYPES[i] == 'IBSP_NODES':
+            nodes = ibsp_data['nodes']
+            out_file.write(pack("<II", pointer, nodes['size'] * nodes['elements']))
+            pointer += nodes['size'] * nodes['elements']
+            bytes_to_write.append(nodes['bytes'])
+            print("wrote {} nodes ({} bytes)".format(nodes['elements'], len(nodes['bytes'])))
+        elif IBSP_TYPES[i] == 'IBSP_LEAVES':
+            leafs = ibsp_data['leafs']
+            out_file.write(pack("<II", pointer, leafs['size'] * leafs['elements']))
+            pointer += leafs['size'] * leafs['elements']
+            bytes_to_write.append(leafs['bytes'])
+            print("wrote {} leafs ({} bytes)".format(leafs['elements'], len(leafs['bytes'])))
+        elif IBSP_TYPES[i] == 'IBSP_LEAF_FACE_TABLE':
+            leaf_faces = ibsp_data['leaf_faces']
+            out_file.write(pack("<II", pointer, leaf_faces['size'] * leaf_faces['elements']))
+            pointer += leaf_faces['size'] * leaf_faces['elements']
+            bytes_to_write.append(leaf_faces['bytes'])
+            print("wrote {} leaf_faces ({} bytes)".format(leaf_faces['elements'], len(leaf_faces['bytes'])))
         else:
             # don't include this lump, set offset and length 0
             out_file.write(pack("<II", 0, 0))
