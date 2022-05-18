@@ -2,6 +2,7 @@ from math import ceil
 
 from PIL import Image
 from struct import pack
+from os.path import exists
 
 
 # write the bitmap with palette to get the texture BMP files
@@ -13,8 +14,9 @@ def write_bitmap(my_bytes: bytes, width, height, name, palette, folder):
     else:
         folder = ''
 
-    print('saving to {}'.format(folder+name+'.png'))
-    image.save(folder+name + '.png')
+    if not exists(folder+name+'.png'):
+        print('saving to {}'.format(folder + name + '.png'))
+        image.save(folder+name + '.png')
 
 
 # no longer in use, as we can extract the BMPs directly from the BSP data
