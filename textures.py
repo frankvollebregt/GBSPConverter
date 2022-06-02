@@ -1,21 +1,30 @@
 from math import ceil
-
 from PIL import Image
-from struct import pack
+from struct import pack, unpack
 from os.path import exists
+import numpy as np
 
 
 # write the bitmap with palette to get the texture BMP files
 def write_bitmap(my_bytes: bytes, width, height, name, palette, folder):
     image = Image.frombytes("P", (width, height), my_bytes)
     image.putpalette(data=palette)
+    last_r, last_g, last_b = palette[-1], palette[-2], palette[-3]
     if len(folder) > 0:
         folder = folder + '/'
     else:
         folder = ''
 
+    image = image.convert('RGBA')
+
+    data = np.array(image)
+    red, green, blue, alpha = data.T
+    with_last = (red == last_r) & (blue == last_b) & (green == last_g)
+    data[...][with_last.T] = (0, 0, 0, 0)
+
+    image = Image.fromarray(data)
+
     if not exists(folder+name+'.png'):
-        print('saving to {}'.format(folder + name + '.png'))
         image.save(folder+name + '.png')
 
 

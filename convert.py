@@ -41,7 +41,91 @@ def convert_to_ibsp(gbsp, folder_name):
         'size': 20,
     }
 
+    print('convert nodes')
+    gbsp_nodes = gbsp[2]
+    ibsp_nodes = b''
+    for index in range(gbsp_nodes.elements):
+        offset = index * gbsp_nodes.size
+
+        cur_bytes = gbsp_nodes.bytes[offset:offset+gbsp_nodes.size]
+        front_child = cur_bytes[0:4]
+        back_child = cur_bytes[4:8]
+        num_faces = int.from_bytes(cur_bytes[8:12], 'little')
+        first_face = int.from_bytes(cur_bytes[12:16], 'little')
+        plane_num = cur_bytes[16:20]
+        min_x, min_y, min_z = struct.unpack('fff', cur_bytes[20:32])
+        max_x, max_y, max_z = struct.unpack('fff', cur_bytes[32:44])
+
+        ibsp_nodes += plane_num + front_child + back_child
+        ibsp_nodes += pack("<hhhhhh", int(min_x), int(min_y), int(min_z), int(max_x), int(max_y), int(max_z))
+        ibsp_nodes += pack("<hh", first_face, num_faces)
+
+    new_bsp['nodes'] = {
+        'elements': gbsp_nodes.elements,
+        'bytes': ibsp_nodes,
+        'size': 28,
+    }
+
+    print('convert leafs')
+    gbsp_leafs = gbsp[4]
+    ibsp_leafs = b''
+    invis_leaf_faces = []
+    for index in range(gbsp_leafs.elements):
+        offset = index * gbsp_leafs.size
+        cur_bytes = gbsp_leafs.bytes[offset:offset+gbsp_leafs.size]
+
+        contents = cur_bytes[0:4]
+        # TODO somehow use the content to determine whether or not the faces in this leaf should be displayed
+        content_bits = [access_bit(contents, i) for i in range(len(contents)*8)]
+
+        min_x, min_y, min_z = struct.unpack('fff', cur_bytes[4:16])
+        max_x, max_y, max_z = struct.unpack('fff', cur_bytes[16:28])
+        first_face = int.from_bytes(cur_bytes[28:32], 'little')
+        num_faces = int.from_bytes(cur_bytes[32:36], 'little')
+        first_portal = cur_bytes[36:40]
+        num_portals = cur_bytes[40:44]
+        cluster = cur_bytes[44:48]
+        area = cur_bytes[48:52]
+        first_side = cur_bytes[52:56]
+        num_sides = cur_bytes[56:60]
+
+        # if content_bits[0] != 1 and content_bits[1] != 1 and content_bits[6] != 1:
+        if content_bits[3] == 1:
+            for i in range(num_faces + 1):
+                print('{} + {} = {}'.format(first_face, i, first_face + i))
+                invis_leaf_faces.append(first_face + i)
+
+
+        ibsp_leafs += pack("<Ihh", 0, 0, 0)
+        ibsp_leafs += pack("<hhhhhh", int(min_x), int(min_y), int(min_z), int(max_x), int(max_y), int(max_z))
+        ibsp_leafs += pack("<HH", first_face, num_faces)
+        ibsp_leafs += pack("<HH", 0, 0)
+
+    new_bsp['leafs'] = {
+        'elements': gbsp_leafs.elements,
+        'bytes': ibsp_leafs,
+        'size': 28,
+    }
+
+    print('convert leaf faces (1 to 1)')
+    gbsp_leaf_faces = gbsp[12]
+    ibsp_leaf_faces = b''
+    invis_faces = []
+    for index in range(gbsp_leaf_faces.elements):
+        offset = index * gbsp_leaf_faces.size
+        face_index = int.from_bytes(gbsp_leaf_faces.bytes[offset:offset + gbsp_leaf_faces.size], 'little', signed=True)
+        if index in invis_leaf_faces:
+            invis_faces.append(face_index)
+        ibsp_leaf_faces += pack("<H", face_index)
+
+    new_bsp['leaf_faces'] = {
+        'elements': gbsp_leaf_faces.elements,
+        'bytes': ibsp_leaf_faces,
+        'size': 2,
+    }
+
     print('converting faces and constructing edges')
+    invis_texinfo = []
     for face_index in range(gbsp_faces.elements):
         # face_index = 0
         offset = face_index * gbsp_faces.size
@@ -113,6 +197,7 @@ def convert_to_ibsp(gbsp, folder_name):
         v_offset = struct.unpack('f', cur_bytes[28:32])[0]
         u_scale = struct.unpack('f', cur_bytes[32:36])[0]
         v_scale = struct.unpack('f', cur_bytes[36:40])[0]
+        alpha = struct.unpack('f', cur_bytes[56:60])[0]
         texture = int.from_bytes(cur_bytes[60:64], 'little')
 
         # grab the texture name
@@ -130,6 +215,8 @@ def convert_to_ibsp(gbsp, folder_name):
         # write the texture bitmap file
         tex_bytes = gbsp_texdata.bytes[tex_offset:tex_offset+ceil(int.from_bytes(tex_width, 'little')*int.from_bytes(tex_height, 'little')*(85/64))]
         # write_wal(bytes=tex_bytes, width=tex_width, height=tex_height, name=texture_name, folder=folder_name)
+        if alpha != 1.0:
+            print('{} for {}'.format(alpha, str(texture_name).rstrip('\x00')))
         write_bitmap(my_bytes=tex_bytes, width=int.from_bytes(tex_width, 'little'), height=int.from_bytes(tex_height, 'little'), name=texture_name.decode('utf-8').rstrip('\x00'), palette=tex_palette, folder=folder_name)
 
         texture_info += pack('<fff', u_x / u_scale, u_y / u_scale, u_z / u_scale) + pack('<f', u_offset) + pack('<fff', v_x / v_scale, v_y / v_scale, v_z / v_scale) + pack('<f', v_offset) + tex_flags + pack("<I", 0)
@@ -141,89 +228,14 @@ def convert_to_ibsp(gbsp, folder_name):
         'bytes': texture_info,
         'size': 76,
     }
-
-    print('convert leaf faces (1 to 1)')
-    gbsp_leaf_faces = gbsp[12]
-    ibsp_leaf_faces = b''
-    for index in range(gbsp_leaf_faces.elements):
-        offset = index * gbsp_leaf_faces.size
-        face_index = int.from_bytes(gbsp_leaf_faces.bytes[offset:offset + gbsp_leaf_faces.size], 'little', signed=True)
-        ibsp_leaf_faces += pack("<H", face_index)
-
-    new_bsp['leaf_faces'] = {
-        'elements': gbsp_leaf_faces.elements,
-        'bytes': ibsp_leaf_faces,
-        'size': 2,
-    }
-
-    print('convert nodes')
-    gbsp_nodes = gbsp[2]
-    ibsp_nodes = b''
-    for index in range(gbsp_nodes.elements):
-        offset = index * gbsp_nodes.size
-
-        cur_bytes = gbsp_nodes.bytes[offset:offset+gbsp_nodes.size]
-        front_child = cur_bytes[0:4]
-        back_child = cur_bytes[4:8]
-        num_faces = int.from_bytes(cur_bytes[8:12], 'little')
-        first_face = int.from_bytes(cur_bytes[12:16], 'little')
-        plane_num = cur_bytes[16:20]
-        min_x, min_y, min_z = struct.unpack('fff', cur_bytes[20:32])
-        max_x, max_y, max_z = struct.unpack('fff', cur_bytes[32:44])
-
-        ibsp_nodes += plane_num + front_child + back_child
-        ibsp_nodes += pack("<hhhhhh", int(min_x), int(min_y), int(min_z), int(max_x), int(max_y), int(max_z))
-        ibsp_nodes += pack("<hh", first_face, num_faces)
-
-    new_bsp['nodes'] = {
-        'elements': gbsp_nodes.elements,
-        'bytes': ibsp_nodes,
-        'size': 28,
-    }
-
-    print('convert leafs')
-    gbsp_leafs = gbsp[4]
-    ibsp_leafs = b''
-    for index in range(gbsp_leafs.elements):
-        offset = index * gbsp_leafs.size
-        cur_bytes = gbsp_leafs.bytes[offset:offset+gbsp_leafs.size]
-
-        contents = cur_bytes[0:4]
-        # TODO somehow use the content to determine whether or not the faces in this leaf should be displayed
-        content_bits = [access_bit(contents, i) for i in range(len(contents)*8)]
-
-        min_x, min_y, min_z = struct.unpack('fff', cur_bytes[4:16])
-        max_x, max_y, max_z = struct.unpack('fff', cur_bytes[16:28])
-        first_face = int.from_bytes(cur_bytes[28:32], 'little')
-        num_faces = int.from_bytes(cur_bytes[32:36], 'little')
-        first_portal = cur_bytes[36:40]
-        num_portals = cur_bytes[40:44]
-        cluster = cur_bytes[44:48]
-        area = cur_bytes[48:52]
-        first_side = cur_bytes[52:56]
-        num_sides = cur_bytes[56:60]
-
-        ibsp_leafs += pack("<Ihh", 0, -1, 0)
-        ibsp_leafs += pack("<hhhhhh", int(min_x), int(min_y), int(min_z), int(max_x), int(max_y), int(max_z))
-        ibsp_leafs += pack("<HH", first_face, num_faces)
-        ibsp_leafs += pack("<HH", 0, 0)
-
-    new_bsp['leafs'] = {
-        'elements': gbsp_leafs.elements,
-        'bytes': ibsp_leafs,
-        'size': 28,
-    }
+    print('invisible texinfo: {}'.format(invis_texinfo))
 
     print('Conversion is done!')
 
-    # for k, v in new_bsp.items():
-    #     print(v['elements'])
-    #     print(v['size'])
-    #     print(len(v['bytes']))
     return new_bsp
 
 
-# Thanks SA! https://stackoverflow.com/a/43787831/15469537
+# Thanks SO! https://stackoverflow.com/a/43787831/15469537
 def access_bit(data, num):
     base = int(num // 8)
     shift = int(num % 8)
