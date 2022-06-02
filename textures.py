@@ -7,6 +7,9 @@ import numpy as np
 
 # write the bitmap with palette to get the texture BMP files
 def write_bitmap(my_bytes: bytes, width, height, name, palette, folder):
+    # Manipulate the palette to replace the last color with (hopefully) an otherwise unused color
+    palette = palette[0:-3] + bytes([123, 234, 123])
+
     image = Image.frombytes("P", (width, height), my_bytes)
     image.putpalette(data=palette)
     last_r, last_g, last_b = palette[-1], palette[-2], palette[-3]
@@ -24,7 +27,7 @@ def write_bitmap(my_bytes: bytes, width, height, name, palette, folder):
 
     image = Image.fromarray(data)
 
-    if not exists(folder+name+'.png'):
+    if not exists(folder+name+'.png') or True:
         image.save(folder+name + '.png')
 
 
