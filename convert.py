@@ -66,6 +66,23 @@ def convert_to_ibsp(gbsp, folder_name):
         'size': 28,
     }
 
+    print('\'convert\' models')
+    model_faces = []
+    gbsp_models = gbsp[1]
+    for index in range(gbsp_models.elements):
+        offset = index * gbsp_models.size
+        cur_bytes = gbsp_models.bytes[offset:offset+gbsp_models.size]
+
+        first_face = int.from_bytes(cur_bytes[44:48], 'little')
+        num_faces = int.from_bytes(cur_bytes[48:52], 'little')
+
+        if num_faces < 1000:
+            for i in range(num_faces + 1):
+                # print('{} + {} = {}'.format(first_face, i, first_face + i))
+                model_faces.append(first_face + i)
+        else:
+            print('from face {} there\'s a whopping {} faces!'.format(first_face, num_faces))
+
     print('convert leafs')
     gbsp_leafs = gbsp[4]
     ibsp_leafs = b''
@@ -90,10 +107,10 @@ def convert_to_ibsp(gbsp, folder_name):
         num_sides = cur_bytes[56:60]
 
         # if content_bits[0] != 1 and content_bits[1] != 1 and content_bits[6] != 1:
-        if content_bits[3] == 1:
-            for i in range(num_faces + 1):
-                print('{} + {} = {}'.format(first_face, i, first_face + i))
-                invis_leaf_faces.append(first_face + i)
+        # if content_bits[3] == 1:
+        #     for i in range(num_faces + 1):
+        #         print('{} + {} = {}'.format(first_face, i, first_face + i))
+        #         invis_leaf_faces.append(first_face + i)
 
 
         ibsp_leafs += pack("<Ihh", 0, 0, 0)
@@ -137,6 +154,11 @@ def convert_to_ibsp(gbsp, folder_name):
         plane = int.from_bytes(cur_bytes[8:12], 'little')
         plane_side = int.from_bytes(cur_bytes[12:16], 'little')
         tex_info = int.from_bytes(cur_bytes[16:20], 'little')
+
+        if face_index in model_faces:
+            # replace texture with yellow
+            # print('making face {} yellow'.format())
+            tex_info = 975
 
         # now that we know the index of the vertex, we can get the vertex indices and use those to create
         # the edges
@@ -214,10 +236,10 @@ def convert_to_ibsp(gbsp, folder_name):
 
         # write the texture bitmap file
         tex_bytes = gbsp_texdata.bytes[tex_offset:tex_offset+ceil(int.from_bytes(tex_width, 'little')*int.from_bytes(tex_height, 'little')*(85/64))]
-        # write_wal(bytes=tex_bytes, width=tex_width, height=tex_height, name=texture_name, folder=folder_name)
-        if alpha != 1.0:
-            print('{} for {}'.format(alpha, str(texture_name).rstrip('\x00')))
         write_bitmap(my_bytes=tex_bytes, width=int.from_bytes(tex_width, 'little'), height=int.from_bytes(tex_height, 'little'), name=texture_name.decode('utf-8').rstrip('\x00'), palette=tex_palette, folder=folder_name)
+
+        # if texture_name.decode('utf-8').rstrip('\x00') == 'yellow':
+        #     print('{} is yellow'.format(index))
 
         texture_info += pack('<fff', u_x / u_scale, u_y / u_scale, u_z / u_scale) + pack('<f', u_offset) + pack('<fff', v_x / v_scale, v_y / v_scale, v_z / v_scale) + pack('<f', v_offset) + tex_flags + pack("<I", 0)
         texture_info += texture_name
@@ -228,7 +250,6 @@ def convert_to_ibsp(gbsp, folder_name):
         'bytes': texture_info,
         'size': 76,
     }
-    print('invisible texinfo: {}'.format(invis_texinfo))
 
     print('Conversion is done!')
 
