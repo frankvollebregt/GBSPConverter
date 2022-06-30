@@ -3,8 +3,10 @@ from math import ceil
 
 from gbsp import GBSPChunk
 from struct import pack
-from textures import write_bitmap, write_wal
-from bitarray import bitarray
+from textures import write_bitmap
+
+textures_with_transparency = ['Lfgrn', 'grvyrd02', ]
+
 
 # Convert the map of GBSP chunk objects to a map of IBSP data
 def convert_to_ibsp(gbsp, folder_name):
@@ -69,6 +71,9 @@ def convert_to_ibsp(gbsp, folder_name):
     print('\'convert\' models')
     model_faces = []
     gbsp_models = gbsp[1]
+    print('model size: {}'.format(gbsp_models.size))
+    print(gbsp_models.elements)
+    motion_indices = set()
     for index in range(gbsp_models.elements):
         offset = index * gbsp_models.size
         cur_bytes = gbsp_models.bytes[offset:offset+gbsp_models.size]
@@ -76,12 +81,23 @@ def convert_to_ibsp(gbsp, folder_name):
         first_face = int.from_bytes(cur_bytes[44:48], 'little')
         num_faces = int.from_bytes(cur_bytes[48:52], 'little')
 
+        # attempt to extract/retrieve the motion
+        # motion = cur_bytes[76:80]
+        # motion_index = int.from_bytes(motion[0:4], 'little')
+        # motion_indices.add(motion_index)
+
         if num_faces < 1000:
             for i in range(num_faces + 1):
                 # print('{} + {} = {}'.format(first_face, i, first_face + i))
                 model_faces.append(first_face + i)
         else:
             print('from face {} there\'s a whopping {} faces!'.format(first_face, num_faces))
+
+    print(motion_indices)
+
+    print('write motions to .mot file')
+    gbsp_motions : GBSPChunk = gbsp[24]
+
 
     print('convert leafs')
     gbsp_leafs = gbsp[4]
@@ -155,10 +171,10 @@ def convert_to_ibsp(gbsp, folder_name):
         plane_side = int.from_bytes(cur_bytes[12:16], 'little')
         tex_info = int.from_bytes(cur_bytes[16:20], 'little')
 
-        if face_index in model_faces:
+        # if face_index in model_faces:
             # replace texture with yellow
             # print('making face {} yellow'.format())
-            tex_info = 975
+            # tex_info = 975
 
         # now that we know the index of the vertex, we can get the vertex indices and use those to create
         # the edges
@@ -219,6 +235,7 @@ def convert_to_ibsp(gbsp, folder_name):
         v_offset = struct.unpack('f', cur_bytes[28:32])[0]
         u_scale = struct.unpack('f', cur_bytes[32:36])[0]
         v_scale = struct.unpack('f', cur_bytes[36:40])[0]
+        tex_info_flags = cur_bytes[40:44]
         alpha = struct.unpack('f', cur_bytes[56:60])[0]
         texture = int.from_bytes(cur_bytes[60:64], 'little')
 
@@ -236,14 +253,23 @@ def convert_to_ibsp(gbsp, folder_name):
 
         # write the texture bitmap file
         tex_bytes = gbsp_texdata.bytes[tex_offset:tex_offset+ceil(int.from_bytes(tex_width, 'little')*int.from_bytes(tex_height, 'little')*(85/64))]
-        write_bitmap(my_bytes=tex_bytes, width=int.from_bytes(tex_width, 'little'), height=int.from_bytes(tex_height, 'little'), name=texture_name.decode('utf-8').rstrip('\x00'), palette=tex_palette, folder=folder_name)
+        has_transparency = write_bitmap(my_bytes=tex_bytes, width=int.from_bytes(tex_width, 'little'), height=int.from_bytes(tex_height, 'little'), name=texture_name.decode('utf-8').rstrip('\x00'), palette=tex_palette, folder=folder_name)
 
-        # if texture_name.decode('utf-8').rstrip('\x00') == 'yellow':
-        #     print('{} is yellow'.format(index))
+        flag_bits = [access_bit(tex_info_flags, i) for i in range(len(tex_info_flags) * 8)]
+        is_invisible = flag_bits[2] == 1 or (flag_bits[4] == 1 and not has_transparency)
+        # bit at index 2 denotes empty (sky) throughout the level
+        # bit at index 4 denotes portals/hitboxes
+        # but also water throughout the level, and part of the tree canopy (for some reason)
 
-        texture_info += pack('<fff', u_x / u_scale, u_y / u_scale, u_z / u_scale) + pack('<f', u_offset) + pack('<fff', v_x / v_scale, v_y / v_scale, v_z / v_scale) + pack('<f', v_offset) + tex_flags + pack("<I", 0)
-        texture_info += texture_name
-        texture_info += pack("<I", 0)
+        # replace the texture info with yellow texture info if the face is not visible
+        if not is_invisible:
+            texture_info += pack('<fff', u_x / u_scale, u_y / u_scale, u_z / u_scale) + pack('<f', u_offset) + pack('<fff', v_x / v_scale, v_y / v_scale, v_z / v_scale) + pack('<f', v_offset) + tex_info_flags + pack("<I", 0)
+            texture_info += texture_name
+            texture_info += pack("<I", 0)
+        else:
+            with open('tex/ylw.bin', 'rb') as bin_file:
+                tex_info_binary = bin_file.read()
+                texture_info += tex_info_binary
 
     new_bsp['texture_info'] = {
         'elements': gbsp_tex_info.elements,
