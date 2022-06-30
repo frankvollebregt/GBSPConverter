@@ -1,7 +1,7 @@
 from gbsp import GBSPChunk
 from struct import pack
 from read_ibsp import IBSP_TYPES
-from convert import convert_to_ibsp
+from convert import convert_to_ibsp, convert_to_obj
 import sys
 
 

@@ -5,8 +5,6 @@ from gbsp import GBSPChunk
 from struct import pack
 from textures import write_bitmap
 
-textures_with_transparency = ['Lfgrn', 'grvyrd02', ]
-
 
 # Convert the map of GBSP chunk objects to a map of IBSP data
 def convert_to_ibsp(gbsp, folder_name):
@@ -71,9 +69,8 @@ def convert_to_ibsp(gbsp, folder_name):
     print('\'convert\' models')
     model_faces = []
     gbsp_models = gbsp[1]
-    print('model size: {}'.format(gbsp_models.size))
-    print(gbsp_models.elements)
-    motion_indices = set()
+
+    yellow_faces = []
     for index in range(gbsp_models.elements):
         offset = index * gbsp_models.size
         cur_bytes = gbsp_models.bytes[offset:offset+gbsp_models.size]
@@ -81,23 +78,25 @@ def convert_to_ibsp(gbsp, folder_name):
         first_face = int.from_bytes(cur_bytes[44:48], 'little')
         num_faces = int.from_bytes(cur_bytes[48:52], 'little')
 
-        # attempt to extract/retrieve the motion
-        # motion = cur_bytes[76:80]
-        # motion_index = int.from_bytes(motion[0:4], 'little')
-        # motion_indices.add(motion_index)
-
         if num_faces < 1000:
             for i in range(num_faces + 1):
                 # print('{} + {} = {}'.format(first_face, i, first_face + i))
                 model_faces.append(first_face + i)
+
+                if index == 44:
+                    print('face should be yellow {}'.format(first_face+i))
+                    yellow_faces.append(first_face + i)
         else:
             print('from face {} there\'s a whopping {} faces!'.format(first_face, num_faces))
 
-    print(motion_indices)
-
     print('write motions to .mot file')
-    gbsp_motions : GBSPChunk = gbsp[24]
-
+    gbsp_motions: GBSPChunk = gbsp[24]
+    if len(folder_name) > 0:
+        folder = folder_name + '/'
+    else:
+        folder = folder_name
+    with open(folder + 'motions.mot', 'wb') as motion_file:
+        motion_file.write(gbsp_motions.bytes)
 
     print('convert leafs')
     gbsp_leafs = gbsp[4]
@@ -171,10 +170,10 @@ def convert_to_ibsp(gbsp, folder_name):
         plane_side = int.from_bytes(cur_bytes[12:16], 'little')
         tex_info = int.from_bytes(cur_bytes[16:20], 'little')
 
-        # if face_index in model_faces:
-            # replace texture with yellow
-            # print('making face {} yellow'.format())
-            # tex_info = 975
+        # if face_index in yellow_faces:
+        #     # replace texture with yellow
+        #     print('making face {} yellow'.format(face_index))
+        #     tex_info = 975
 
         # now that we know the index of the vertex, we can get the vertex indices and use those to create
         # the edges
@@ -280,6 +279,92 @@ def convert_to_ibsp(gbsp, folder_name):
     print('Conversion is done!')
 
     return new_bsp
+
+
+def convert_to_obj(gbsp):
+    print('Converting...')
+
+    # To create texture_info, we need textures and texture_info from the gbsp data
+    gbsp_models: GBSPChunk = gbsp[1]
+    gbsp_tex_info: GBSPChunk = gbsp[17]
+    gbsp_tex: GBSPChunk = gbsp[18]
+    gbsp_faces: GBSPChunk = gbsp[11]
+    gbsp_verts: GBSPChunk = gbsp[14]
+    gbsp_vert_index: GBSPChunk = gbsp[13]
+    gbsp_planes: GBSPChunk = gbsp[10]
+    gbsp_texdata: GBSPChunk = gbsp[19]
+    gbsp_palette: GBSPChunk = gbsp[23]
+
+    model_index = 0
+
+    all_lines = ['# test to write a simple object']
+    vert_counter = 1
+
+    for model_index in range(gbsp_models.elements):
+        model_index += 1
+        model_name = 'model_{}'.format(model_index)
+
+        obj_lines = ['\n\no  {}\n\n'.format(model_name)]
+
+        model_offset = model_index * gbsp_models.size
+        model_bytes = gbsp_models.bytes[model_offset:model_offset + gbsp_models.size]
+
+        face_indices = []
+
+        first_face = int.from_bytes(model_bytes[44:48], 'little')
+        num_faces = int.from_bytes(model_bytes[48:52], 'little')
+
+        for i in range(num_faces):
+            face_indices.append(first_face + i)
+
+        if len(face_indices) > 0:
+            # retrieve the faces
+            for face_index in face_indices:
+                face_offset = face_index * gbsp_faces.size
+                face_bytes = gbsp_faces.bytes[face_offset:face_offset + gbsp_faces.size]
+
+                vert_index_indices = []
+
+                first_vert_index = int.from_bytes(face_bytes[0:4], 'little')
+                num_verts = int.from_bytes(face_bytes[4:8], 'little')
+
+                face_def = "f"
+
+                for i in range(num_verts + 1):
+                    vert_index_indices.append(first_vert_index + i)
+
+                # retrieve the vertices via the vertex index
+                for vert_index_index in vert_index_indices:
+                    vert_index_offset = vert_index_index * gbsp_vert_index.size
+                    vert_index_bytes = gbsp_vert_index.bytes[vert_index_offset:vert_index_offset + gbsp_vert_index.size]
+                    vert_index = int.from_bytes(vert_index_bytes, 'little')
+
+                    face_def += '  {}//'.format(vert_counter)
+                    vert_counter += 1
+
+                    # get the vert
+                    vert_offset = vert_index * gbsp_verts.size
+                    vert_bytes = gbsp_verts.bytes[vert_offset:vert_offset+gbsp_verts.size]
+
+                    x, y, z = struct.unpack('fff', vert_bytes)
+
+                    # write the vertex
+                    obj_lines.append("v  {}  {}  {}\n".format(x, y, z))
+
+                # write the face
+                face_def += '\n\n'
+                obj_lines.append(face_def)
+
+        # TODO hacky? What? I would never
+        obj_lines = obj_lines[:-2]
+        obj_lines.append(face_def.rsplit('  ', maxsplit=1)[0])
+        vert_counter -= 1
+
+        all_lines = all_lines + obj_lines
+
+    obj_file = open('models/' + 'all_together' + '.obj', 'w')
+    obj_file.writelines(all_lines)
+    obj_file.close()
 
 
 # Thanks SO! https://stackoverflow.com/a/43787831/15469537
