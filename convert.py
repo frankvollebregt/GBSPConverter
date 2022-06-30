@@ -47,7 +47,7 @@ def convert_to_ibsp(gbsp, folder_name):
     for index in range(gbsp_nodes.elements):
         offset = index * gbsp_nodes.size
 
-        cur_bytes = gbsp_nodes.bytes[offset:offset+gbsp_nodes.size]
+        cur_bytes = gbsp_nodes.bytes[offset:offset + gbsp_nodes.size]
         front_child = cur_bytes[0:4]
         back_child = cur_bytes[4:8]
         num_faces = int.from_bytes(cur_bytes[8:12], 'little')
@@ -73,7 +73,7 @@ def convert_to_ibsp(gbsp, folder_name):
     yellow_faces = []
     for index in range(gbsp_models.elements):
         offset = index * gbsp_models.size
-        cur_bytes = gbsp_models.bytes[offset:offset+gbsp_models.size]
+        cur_bytes = gbsp_models.bytes[offset:offset + gbsp_models.size]
 
         first_face = int.from_bytes(cur_bytes[44:48], 'little')
         num_faces = int.from_bytes(cur_bytes[48:52], 'little')
@@ -84,7 +84,7 @@ def convert_to_ibsp(gbsp, folder_name):
                 model_faces.append(first_face + i)
 
                 if index == 44:
-                    print('face should be yellow {}'.format(first_face+i))
+                    print('face should be yellow {}'.format(first_face + i))
                     yellow_faces.append(first_face + i)
         else:
             print('from face {} there\'s a whopping {} faces!'.format(first_face, num_faces))
@@ -104,11 +104,11 @@ def convert_to_ibsp(gbsp, folder_name):
     invis_leaf_faces = []
     for index in range(gbsp_leafs.elements):
         offset = index * gbsp_leafs.size
-        cur_bytes = gbsp_leafs.bytes[offset:offset+gbsp_leafs.size]
+        cur_bytes = gbsp_leafs.bytes[offset:offset + gbsp_leafs.size]
 
         contents = cur_bytes[0:4]
         # TODO somehow use the content to determine whether or not the faces in this leaf should be displayed
-        content_bits = [access_bit(contents, i) for i in range(len(contents)*8)]
+        content_bits = [access_bit(contents, i) for i in range(len(contents) * 8)]
 
         min_x, min_y, min_z = struct.unpack('fff', cur_bytes[4:16])
         max_x, max_y, max_z = struct.unpack('fff', cur_bytes[16:28])
@@ -126,7 +126,6 @@ def convert_to_ibsp(gbsp, folder_name):
         #     for i in range(num_faces + 1):
         #         print('{} + {} = {}'.format(first_face, i, first_face + i))
         #         invis_leaf_faces.append(first_face + i)
-
 
         ibsp_leafs += pack("<Ihh", 0, 0, 0)
         ibsp_leafs += pack("<hhhhhh", int(min_x), int(min_y), int(min_z), int(max_x), int(max_y), int(max_z))
@@ -183,9 +182,9 @@ def convert_to_ibsp(gbsp, folder_name):
             if index == 0:
                 # first edge, store it to use in the face
                 first_edge_index = int(len(all_edges) / 4)
-            vert_index_a = gbsp_vert_index.bytes[4*vert_index_indices[index]:4*vert_index_indices[index]+4]
-            dest = (index+1) % len(vert_index_indices)
-            vert_index_b = gbsp_vert_index.bytes[4*vert_index_indices[dest]:4*vert_index_indices[dest] + 4]
+            vert_index_a = gbsp_vert_index.bytes[4 * vert_index_indices[index]:4 * vert_index_indices[index] + 4]
+            dest = (index + 1) % len(vert_index_indices)
+            vert_index_b = gbsp_vert_index.bytes[4 * vert_index_indices[dest]:4 * vert_index_indices[dest] + 4]
             point_a = int.from_bytes(vert_index_a, 'little')
             point_b = int.from_bytes(vert_index_b, 'little')
             all_edges += pack("<hh", point_a, point_b)
@@ -193,9 +192,8 @@ def convert_to_ibsp(gbsp, folder_name):
         # Now store the face in the all_faces list
         all_faces += pack("<HHIHHII", plane, plane_side, first_edge_index, num_verts, tex_info, 0, 0)
 
-
     print('convert edges')
-    num_edges = int(len(all_edges)/4)
+    num_edges = int(len(all_edges) / 4)
     new_bsp['edges'] = {
         'elements': num_edges,
         'bytes': all_edges,
@@ -239,7 +237,7 @@ def convert_to_ibsp(gbsp, folder_name):
         texture = int.from_bytes(cur_bytes[60:64], 'little')
 
         # grab the texture name
-        tex_bytes = gbsp_tex.bytes[texture * gbsp_tex.size:(texture+1) * gbsp_tex.size]
+        tex_bytes = gbsp_tex.bytes[texture * gbsp_tex.size:(texture + 1) * gbsp_tex.size]
         texture_name = tex_bytes[0:32]
         tex_flags = tex_bytes[32:36]
         tex_width = tex_bytes[36:40]
@@ -248,11 +246,16 @@ def convert_to_ibsp(gbsp, folder_name):
 
         # read the correct palette for the texture
         tex_palette_index = int.from_bytes(tex_bytes[48:52], 'little')
-        tex_palette = gbsp_palette.bytes[gbsp_palette.size * tex_palette_index:gbsp_palette.size * (tex_palette_index+1)]
+        tex_palette = gbsp_palette.bytes[
+                      gbsp_palette.size * tex_palette_index:gbsp_palette.size * (tex_palette_index + 1)]
 
         # write the texture bitmap file
-        tex_bytes = gbsp_texdata.bytes[tex_offset:tex_offset+ceil(int.from_bytes(tex_width, 'little')*int.from_bytes(tex_height, 'little')*(85/64))]
-        has_transparency = write_bitmap(my_bytes=tex_bytes, width=int.from_bytes(tex_width, 'little'), height=int.from_bytes(tex_height, 'little'), name=texture_name.decode('utf-8').rstrip('\x00'), palette=tex_palette, folder=folder_name)
+        tex_bytes = gbsp_texdata.bytes[tex_offset:tex_offset + ceil(
+            int.from_bytes(tex_width, 'little') * int.from_bytes(tex_height, 'little') * (85 / 64))]
+        has_transparency = write_bitmap(my_bytes=tex_bytes, width=int.from_bytes(tex_width, 'little'),
+                                        height=int.from_bytes(tex_height, 'little'),
+                                        name=texture_name.decode('utf-8').rstrip('\x00'), palette=tex_palette,
+                                        folder=folder_name)
 
         flag_bits = [access_bit(tex_info_flags, i) for i in range(len(tex_info_flags) * 8)]
         is_invisible = flag_bits[2] == 1 or (flag_bits[4] == 1 and not has_transparency)
@@ -262,7 +265,9 @@ def convert_to_ibsp(gbsp, folder_name):
 
         # replace the texture info with yellow texture info if the face is not visible
         if not is_invisible:
-            texture_info += pack('<fff', u_x / u_scale, u_y / u_scale, u_z / u_scale) + pack('<f', u_offset) + pack('<fff', v_x / v_scale, v_y / v_scale, v_z / v_scale) + pack('<f', v_offset) + tex_info_flags + pack("<I", 0)
+            texture_info += pack('<fff', u_x / u_scale, u_y / u_scale, u_z / u_scale) + pack('<f', u_offset) + pack(
+                '<fff', v_x / v_scale, v_y / v_scale, v_z / v_scale) + pack('<f', v_offset) + tex_info_flags + pack(
+                "<I", 0)
             texture_info += texture_name
             texture_info += pack("<I", 0)
         else:
@@ -295,20 +300,30 @@ def convert_to_obj(gbsp):
     gbsp_texdata: GBSPChunk = gbsp[19]
     gbsp_palette: GBSPChunk = gbsp[23]
 
-    all_lines = ['# test to write a simple object']
+    all_lines = ['# test to write a simple object\n']
     vert_lines = ['# verts\n']
+    norm_lines = ['# vert normals\n']
+    tex_lines = ['# vert textures\n']
     face_lines = []
     vert_counter = 1
+    norm_counter = 1
+    tex_counter = 1
+
     vert_map = {}
+    norm_map = {}
+    tex_map = {}
 
     all_face_indices = set()
 
     for model_index in range(gbsp_models.elements):
         model_index += 1
 
+        if model_index > 1:
+            break
+
         model_name = 'model_{}'.format(model_index)
 
-        face_lines += ['\n\n# the {} object\n'.format(model_name), 'o  {}\n'.format(model_name)]
+        face_lines += ['\n\n# the {} object\n'.format(model_name), 'o  {}\n'.format(model_name), 'usemtl test_material\n']
 
         model_offset = model_index * gbsp_models.size
         model_bytes = gbsp_models.bytes[model_offset:model_offset + gbsp_models.size]
@@ -326,35 +341,53 @@ def convert_to_obj(gbsp):
 
             # retrieve the faces
             for face_index in face_indices:
-                vert_map, vert_counter, vert_lines, face_lines = get_and_append_face(
-                    face_index, gbsp, vert_map, vert_counter, vert_lines, face_lines
+                vert_map, vert_counter, vert_lines, \
+                norm_map, norm_counter, norm_lines, \
+                tex_map, tex_counter, tex_lines, \
+                face_lines = get_and_append_face(
+                    face_index, gbsp,
+                    vert_map, vert_counter, vert_lines,
+                    norm_map, norm_counter, norm_lines,
+                    tex_map, tex_counter, tex_lines,
+                    face_lines
                 )
 
-        # TODO hacky? What? I would never
-        face_lines = face_lines[:-1] + [face_lines[-1:][0].rsplit('  ', maxsplit=1)[0]]
-
     # Now go through the remaining faces and add them to the main object as required
-    face_lines += ['\n\n# the main object\n', 'o  main_structure\n']
-    for face_index in range(gbsp_faces.elements):
-        if face_index in all_face_indices:
-            pass
-
-        vert_map, vert_counter, vert_lines, face_lines = get_and_append_face(
-            face_index, gbsp, vert_map, vert_counter, vert_lines, face_lines, True
-        )
+    # face_lines += ['\n\n# the main object\n', 'o  main_structure\n']
+    # for face_index in range(gbsp_faces.elements):
+    #     if face_index in all_face_indices:
+    #         pass
+    #
+    #     vert_map, vert_counter, vert_lines, \
+    #            norm_map, norm_counter, norm_lines, \
+    #            tex_map, tex_counter, tex_lines, \
+    #            face_lines = get_and_append_face(
+    #                             face_index, gbsp,
+    #                     vert_map, vert_counter, vert_lines,
+    #                     norm_map, norm_counter, norm_lines,
+    #                     tex_map, tex_counter, tex_lines,
+    #                     face_lines, True
+    #     )
 
     obj_file = open('models/' + 'all_together' + '.obj', 'w')
     obj_file.writelines(all_lines)
     obj_file.writelines(vert_lines)
+    obj_file.writelines(norm_lines)
+    obj_file.writelines(tex_lines)
     obj_file.writelines(face_lines)
     obj_file.close()
 
 
 # Get the face from the GBSP file and append its vertices and faces (or reference them if they're already defined)
-def get_and_append_face(face_index, gbsp, vert_map, vert_counter, vert_lines, face_lines, remove_invisible=False):
+def get_and_append_face(face_index, gbsp,
+                        vert_map, vert_counter, vert_lines,
+                        norm_map, norm_counter, norm_lines,
+                        tex_map, tex_counter, tex_lines,
+                        face_lines, remove_invisible=False):
+    gbsp_planes: GBSPChunk = gbsp[10]
     gbsp_faces: GBSPChunk = gbsp[11]
-    gbsp_verts: GBSPChunk = gbsp[14]
     gbsp_vert_index: GBSPChunk = gbsp[13]
+    gbsp_verts: GBSPChunk = gbsp[14]
 
     face_offset = face_index * gbsp_faces.size
     face_bytes = gbsp_faces.bytes[face_offset:face_offset + gbsp_faces.size]
@@ -363,7 +396,26 @@ def get_and_append_face(face_index, gbsp, vert_map, vert_counter, vert_lines, fa
 
     first_vert_index = int.from_bytes(face_bytes[0:4], 'little')
     num_verts = int.from_bytes(face_bytes[4:8], 'little')
+    plane_index = int.from_bytes(face_bytes[8:12], 'little')
+
+    # get this face's normal from the plane
+    if plane_index not in norm_map:
+        norm_map[plane_index] = norm_counter
+        norm_counter += 1
+
+        plane_offset = plane_index * gbsp_planes.size
+        plane_bytes = gbsp_planes.bytes[plane_offset:plane_offset + gbsp_planes.size]
+        norm_x, norm_y, norm_z = struct.unpack('fff', plane_bytes[0:12])
+        norm_lines.append('vn  {}  {}  {}\n'.format(norm_x, norm_y, norm_z))
+
     tex_info = int.from_bytes(face_bytes[16:20], 'little')
+    gbsp_tex_info: GBSPChunk = gbsp[17]
+    tex_info_offset = tex_info * gbsp_tex_info.size
+    tex_info_bytes = gbsp_tex_info.bytes[tex_info_offset:tex_info_offset + gbsp_tex_info.size]
+
+    u_x, u_y, u_z = struct.unpack('fff', tex_info_bytes[0:12])
+    v_x, v_y, v_z = struct.unpack('fff', tex_info_bytes[12:24])
+    u_offset, v_offset, u_scale, v_scale = struct.unpack('ffff', tex_info_bytes[24:40])
 
     # Little detour for the texture of this face
     # TODO do we still need to check for transparency in the image for this?
@@ -381,25 +433,39 @@ def get_and_append_face(face_index, gbsp, vert_map, vert_counter, vert_lines, fa
         vert_index_bytes = gbsp_vert_index.bytes[vert_index_offset:vert_index_offset + gbsp_vert_index.size]
         vert_index = int.from_bytes(vert_index_bytes, 'little')
 
-        if vert_index not in vert_map:
+        new_vert = vert_index not in vert_map
+
+        if new_vert:
             vert_map[vert_index] = vert_counter
             vert_counter += 1
 
-            # get the vert
-            vert_offset = vert_index * gbsp_verts.size
-            vert_bytes = gbsp_verts.bytes[vert_offset:vert_offset + gbsp_verts.size]
+        # get the vert
+        vert_offset = vert_index * gbsp_verts.size
+        vert_bytes = gbsp_verts.bytes[vert_offset:vert_offset + gbsp_verts.size]
+        x, y, z = struct.unpack('fff', vert_bytes)
 
-            x, y, z = struct.unpack('fff', vert_bytes)
-
-            # write the vertex
+        # write the vertex
+        if new_vert:
             vert_lines.append("v  {}  {}  {}\n".format(x, y, z))
-        face_def += '  {}//'.format(vert_map[vert_index])
+
+        # calculate and write the vertex texture
+        print('{}, {}'.format(u_scale, v_scale))
+        u = (x * u_x + y * u_y + z * u_z) * u_scale - u_offset
+        v = (x * v_x + y * v_y + z * v_z) * v_scale - v_offset
+        tex_lines.append('vt  {}  {}\n'.format(u, v))
+
+        face_def += '  {}/{}/{}'.format(vert_map[vert_index], tex_counter, norm_map[plane_index])
+
+        tex_counter += 1
 
     # write the face
     face_def += '\n'
     face_lines.append(face_def)
 
-    return vert_map, vert_counter, vert_lines, face_lines
+    return vert_map, vert_counter, vert_lines, \
+           norm_map, norm_counter, norm_lines, \
+           tex_map, tex_counter, tex_lines, \
+           face_lines
 
 
 def is_invisible(gbsp, tex_info_index):
