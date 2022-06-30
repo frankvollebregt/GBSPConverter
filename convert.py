@@ -295,16 +295,20 @@ def convert_to_obj(gbsp):
     gbsp_texdata: GBSPChunk = gbsp[19]
     gbsp_palette: GBSPChunk = gbsp[23]
 
-    model_index = 0
-
     all_lines = ['# test to write a simple object']
+    vert_lines = ['# verts\n']
+    face_lines = []
     vert_counter = 1
+    vert_map = {}
+
+    all_face_indices = set()
 
     for model_index in range(gbsp_models.elements):
         model_index += 1
+
         model_name = 'model_{}'.format(model_index)
 
-        obj_lines = ['\n\no  {}\n\n'.format(model_name)]
+        face_lines += ['\n\n# the {} object\n'.format(model_name), 'o  {}\n'.format(model_name)]
 
         model_offset = model_index * gbsp_models.size
         model_bytes = gbsp_models.bytes[model_offset:model_offset + gbsp_models.size]
@@ -318,53 +322,96 @@ def convert_to_obj(gbsp):
             face_indices.append(first_face + i)
 
         if len(face_indices) > 0:
+            all_face_indices.update(face_indices)
+
             # retrieve the faces
             for face_index in face_indices:
-                face_offset = face_index * gbsp_faces.size
-                face_bytes = gbsp_faces.bytes[face_offset:face_offset + gbsp_faces.size]
-
-                vert_index_indices = []
-
-                first_vert_index = int.from_bytes(face_bytes[0:4], 'little')
-                num_verts = int.from_bytes(face_bytes[4:8], 'little')
-
-                face_def = "f"
-
-                for i in range(num_verts + 1):
-                    vert_index_indices.append(first_vert_index + i)
-
-                # retrieve the vertices via the vertex index
-                for vert_index_index in vert_index_indices:
-                    vert_index_offset = vert_index_index * gbsp_vert_index.size
-                    vert_index_bytes = gbsp_vert_index.bytes[vert_index_offset:vert_index_offset + gbsp_vert_index.size]
-                    vert_index = int.from_bytes(vert_index_bytes, 'little')
-
-                    face_def += '  {}//'.format(vert_counter)
-                    vert_counter += 1
-
-                    # get the vert
-                    vert_offset = vert_index * gbsp_verts.size
-                    vert_bytes = gbsp_verts.bytes[vert_offset:vert_offset+gbsp_verts.size]
-
-                    x, y, z = struct.unpack('fff', vert_bytes)
-
-                    # write the vertex
-                    obj_lines.append("v  {}  {}  {}\n".format(x, y, z))
-
-                # write the face
-                face_def += '\n\n'
-                obj_lines.append(face_def)
+                vert_map, vert_counter, vert_lines, face_lines = get_and_append_face(
+                    face_index, gbsp, vert_map, vert_counter, vert_lines, face_lines
+                )
 
         # TODO hacky? What? I would never
-        obj_lines = obj_lines[:-2]
-        obj_lines.append(face_def.rsplit('  ', maxsplit=1)[0])
-        vert_counter -= 1
+        face_lines = face_lines[:-1] + [face_lines[-1:][0].rsplit('  ', maxsplit=1)[0]]
 
-        all_lines = all_lines + obj_lines
+    # Now go through the remaining faces and add them to the main object as required
+    face_lines += ['\n\n# the main object\n', 'o  main_structure\n']
+    for face_index in range(gbsp_faces.elements):
+        if face_index in all_face_indices:
+            pass
+
+        vert_map, vert_counter, vert_lines, face_lines = get_and_append_face(
+            face_index, gbsp, vert_map, vert_counter, vert_lines, face_lines, True
+        )
 
     obj_file = open('models/' + 'all_together' + '.obj', 'w')
     obj_file.writelines(all_lines)
+    obj_file.writelines(vert_lines)
+    obj_file.writelines(face_lines)
     obj_file.close()
+
+
+# Get the face from the GBSP file and append its vertices and faces (or reference them if they're already defined)
+def get_and_append_face(face_index, gbsp, vert_map, vert_counter, vert_lines, face_lines, remove_invisible=False):
+    gbsp_faces: GBSPChunk = gbsp[11]
+    gbsp_verts: GBSPChunk = gbsp[14]
+    gbsp_vert_index: GBSPChunk = gbsp[13]
+
+    face_offset = face_index * gbsp_faces.size
+    face_bytes = gbsp_faces.bytes[face_offset:face_offset + gbsp_faces.size]
+
+    vert_index_indices = []
+
+    first_vert_index = int.from_bytes(face_bytes[0:4], 'little')
+    num_verts = int.from_bytes(face_bytes[4:8], 'little')
+    tex_info = int.from_bytes(face_bytes[16:20], 'little')
+
+    # Little detour for the texture of this face
+    # TODO do we still need to check for transparency in the image for this?
+    if is_invisible(gbsp, tex_info) and remove_invisible:
+        return vert_map, vert_counter, vert_lines, face_lines
+
+    face_def = "f"
+
+    for i in range(num_verts):
+        vert_index_indices.append(first_vert_index + i)
+
+    # retrieve the vertices via the vertex index
+    for vert_index_index in vert_index_indices:
+        vert_index_offset = vert_index_index * gbsp_vert_index.size
+        vert_index_bytes = gbsp_vert_index.bytes[vert_index_offset:vert_index_offset + gbsp_vert_index.size]
+        vert_index = int.from_bytes(vert_index_bytes, 'little')
+
+        if vert_index not in vert_map:
+            vert_map[vert_index] = vert_counter
+            vert_counter += 1
+
+            # get the vert
+            vert_offset = vert_index * gbsp_verts.size
+            vert_bytes = gbsp_verts.bytes[vert_offset:vert_offset + gbsp_verts.size]
+
+            x, y, z = struct.unpack('fff', vert_bytes)
+
+            # write the vertex
+            vert_lines.append("v  {}  {}  {}\n".format(x, y, z))
+        face_def += '  {}//'.format(vert_map[vert_index])
+
+    # write the face
+    face_def += '\n'
+    face_lines.append(face_def)
+
+    return vert_map, vert_counter, vert_lines, face_lines
+
+
+def is_invisible(gbsp, tex_info_index):
+    gbsp_tex_info: GBSPChunk = gbsp[17]
+    tex_info_offset = tex_info_index * gbsp_tex_info.size
+    tex_info_bytes = gbsp_tex_info.bytes[tex_info_offset:tex_info_offset + gbsp_tex_info.size]
+
+    # We only need the flags
+    tex_info_flags = tex_info_bytes[40:44]
+    flag_bits = [access_bit(tex_info_flags, i) for i in range(len(tex_info_flags) * 8)]
+
+    return flag_bits[2] == 1 or flag_bits[4] == 1
 
 
 # Thanks SO! https://stackoverflow.com/a/43787831/15469537
