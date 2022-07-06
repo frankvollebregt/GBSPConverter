@@ -107,8 +107,8 @@ def get_and_append_face(face_index, gbsp,
             vert_lines.append("v  {}  {}  {}\n".format(vec.x, vec.y, vec.z))
 
         # TODO fix this to actually work properly
-        u = vec.dot(u_axis) / u_scale / u_size
-        v = vec.dot(v_axis) / v_scale / v_size
+        u = (vec.dot(u_axis) + u_offset) / u_scale / u_size
+        v = (vec.dot(v_axis) + v_offset) / v_scale / v_size
 
         # u = (vec.dot(u_axis.get_norm()) + u_offset)/(u_size+0.00000001)
         # v = (vec.dot(v_axis.get_norm()) + v_offset)/(v_size+0.00000001)

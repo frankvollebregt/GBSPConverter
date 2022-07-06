@@ -8,18 +8,17 @@ from obj_helpers import Vec3d, get_plane_size, is_invisible
 from textures import write_bitmap
 
 
-def convert_to_obj(gbsp):
+def convert_to_obj(gbsp, out_path, folder_name):
     print('Converting...')
 
     # To create texture_info, we need textures and texture_info from the gbsp data
     gbsp_models: GBSPChunk = gbsp[1]
-    gbsp_faces: GBSPChunk = gbsp[11]
     gbsp_tex: GBSPChunk = gbsp[18]
     gbsp_texdata: GBSPChunk = gbsp[19]
     gbsp_palettes: GBSPChunk = gbsp[23]
 
     all_lines = ['# Generated with GBSPConverter\n', '# https://www.github.com/frankvollebregt/GBSPConverter\n\n',
-                 'mtllib all_together.mtl\n']
+                 'mtllib ' + out_path.split('/')[-1] + '.mtl\n']
     vert_lines = ['# verts\n']
     norm_lines = ['# vert normals\n']
     tex_lines = ['# vert textures\n']
@@ -114,10 +113,10 @@ def convert_to_obj(gbsp):
 
         # Write the png image
         write_bitmap(my_bytes=tex_data_bytes, width=tex_width, height=tex_height, name=tex_name,
-                     palette=tex_palette_bytes, folder='models')
+                     palette=tex_palette_bytes, folder=folder_name)
 
     # write the obj file
-    obj_file = open('models/' + 'all_together' + '.obj', 'w')
+    obj_file = open(out_path + '.obj', 'w')
     obj_file.writelines(all_lines)
     obj_file.writelines(vert_lines)
     obj_file.writelines(norm_lines)
@@ -126,6 +125,6 @@ def convert_to_obj(gbsp):
     obj_file.close()
 
     # write the material file
-    mtl_file = open('models/' + 'all_together' + '.mtl', 'w')
+    mtl_file = open(out_path + '.mtl', 'w')
     mtl_file.writelines(mtl_lines)
     mtl_file.close()
