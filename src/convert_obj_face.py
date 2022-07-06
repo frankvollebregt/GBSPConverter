@@ -106,7 +106,7 @@ def get_and_append_face(face_index, gbsp,
         if new_vert:
             vert_lines.append("v  {}  {}  {}\n".format(vec.x, vec.y, vec.z))
 
-        # TODO fix this to actually work properly
+        # TODO fix the UV maps to actually work properly
         u = (vec.dot(u_axis) + u_offset) / u_scale / u_size
         v = (vec.dot(v_axis) + v_offset) / v_scale / v_size
 
