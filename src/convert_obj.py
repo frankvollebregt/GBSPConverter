@@ -2,10 +2,9 @@ import struct
 
 from math import ceil
 
-from convert_obj_face import get_and_append_face
-from gbsp import GBSPChunk
-from obj_helpers import Vec3d, get_plane_size, is_invisible
-from textures import write_bitmap
+from src.convert_obj_face import get_and_append_face
+from src.gbsp import GBSPChunk
+from src.textures import write_bitmap
 
 
 def convert_to_obj(gbsp, out_path, folder_name):

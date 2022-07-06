@@ -1,6 +1,4 @@
-from math import ceil
 from PIL import Image
-from struct import pack, unpack
 from os.path import exists
 import numpy as np
 

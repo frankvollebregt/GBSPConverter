@@ -1,28 +1,7 @@
 import sys
 
-from convert_obj import convert_to_obj
-from gbsp import GBSPChunk
-
-
-# Read a GBSP header and bytes, and put them into a GBSPChunk object
-def read_gbsp_chunk(f):
-    gbsp_bytes = f.read(12)
-    chunk = GBSPChunk.from_bytes(gbsp_bytes)
-    chunk.read_bytes(f)
-    return chunk
-
-
-# Read the GBSP file, adding each chunk to a map
-def read_gbsp_file(path):
-    gbsp = {}
-    file = open(path, 'rb')
-    current_chunk = read_gbsp_chunk(file)
-    while current_chunk.type_string() != 'GBSP_CHUNK_END':
-        gbsp[current_chunk.type] = current_chunk
-        current_chunk = read_gbsp_chunk(file)
-    file.close()
-
-    return gbsp
+from src.convert_obj import convert_to_obj
+from src.gbsp_to_ibsp import read_gbsp_file
 
 
 if __name__ == '__main__':
