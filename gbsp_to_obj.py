@@ -1,8 +1,7 @@
-from gbsp import GBSPChunk
-from struct import pack
-from read_ibsp import IBSP_TYPES
-from convert import convert_to_ibsp, convert_to_obj
 import sys
+
+from convert_obj import convert_to_obj
+from gbsp import GBSPChunk
 
 
 # Read a GBSP header and bytes, and put them into a GBSPChunk object
@@ -34,5 +33,4 @@ if __name__ == '__main__':
     path = sys.argv[1]
     gbsp = read_gbsp_file(path)
 
-    # TODO remove again
     convert_to_obj(gbsp)
