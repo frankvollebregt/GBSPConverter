@@ -294,6 +294,8 @@ def convert_to_obj(gbsp):
     gbsp_models: GBSPChunk = gbsp[1]
     gbsp_faces: GBSPChunk = gbsp[11]
     gbsp_tex: GBSPChunk = gbsp[18]
+    gbsp_texdata: GBSPChunk = gbsp[19]
+    gbsp_palettes: GBSPChunk = gbsp[23]
 
     all_lines = ['# Generated with GBSPConverter\n', '# https://www.github.com/frankvollebregt/GBSPConverter\n\n', 'mtllib all_together.mtl\n']
     vert_lines = ['# verts\n']
@@ -314,57 +316,65 @@ def convert_to_obj(gbsp):
     for model_index in range(gbsp_models.elements):
         model_index += 1
 
-        model_name = 'model_{}'.format(model_index)
+        if 45 <= model_index <= 46:
 
-        face_lines += ['\n\n# the {} object\n'.format(model_name), 'o  {}\n'.format(model_name)]
+            model_name = 'model_{}'.format(model_index)
 
-        model_offset = model_index * gbsp_models.size
-        model_bytes = gbsp_models.bytes[model_offset:model_offset + gbsp_models.size]
+            face_lines += ['\n\n# the {} object\n'.format(model_name), 'o  {}\n'.format(model_name)]
 
-        face_indices = []
+            model_offset = model_index * gbsp_models.size
+            model_bytes = gbsp_models.bytes[model_offset:model_offset + gbsp_models.size]
 
-        first_face = int.from_bytes(model_bytes[44:48], 'little')
-        num_faces = int.from_bytes(model_bytes[48:52], 'little')
+            face_indices = []
 
-        for i in range(num_faces):
-            face_indices.append(first_face + i)
+            first_face = int.from_bytes(model_bytes[44:48], 'little')
+            num_faces = int.from_bytes(model_bytes[48:52], 'little')
 
-        if len(face_indices) > 0:
-            all_face_indices.update(face_indices)
+            for i in range(num_faces):
+                face_indices.append(first_face + i)
 
-            # retrieve the faces
-            for face_index in face_indices:
-                vert_map, vert_counter, vert_lines, \
-                norm_map, norm_counter, norm_lines, \
-                tex_map, tex_counter, tex_lines, \
-                face_lines, last_tex_name = get_and_append_face(
-                    face_index, gbsp,
-                    vert_map, vert_counter, vert_lines,
-                    norm_map, norm_counter, norm_lines,
-                    tex_map, tex_counter, tex_lines,
-                    face_lines, last_tex_name
-                )
+            if len(face_indices) > 0:
+                all_face_indices.update(face_indices)
+
+                # retrieve the faces
+                for face_index in face_indices:
+                    vert_map, vert_counter, vert_lines, \
+                    norm_map, norm_counter, norm_lines, \
+                    tex_map, tex_counter, tex_lines, \
+                    face_lines, last_tex_name = get_and_append_face(
+                        face_index, gbsp,
+                        vert_map, vert_counter, vert_lines,
+                        norm_map, norm_counter, norm_lines,
+                        tex_map, tex_counter, tex_lines,
+                        face_lines, last_tex_name
+                    )
 
     # Now go through the remaining faces and add them to the main object as required
-    face_lines += ['\n\n# the main object\n', 'o  main_structure\n']
-    for face_index in range(gbsp_faces.elements):
-        if face_index not in all_face_indices:
-            vert_map, vert_counter, vert_lines, \
-            norm_map, norm_counter, norm_lines, \
-            tex_map, tex_counter, tex_lines, \
-            face_lines, last_tex_name = get_and_append_face(
-                face_index, gbsp,
-                vert_map, vert_counter, vert_lines,
-                norm_map, norm_counter, norm_lines,
-                tex_map, tex_counter, tex_lines,
-                face_lines, last_tex_name, True
-            )
+    # face_lines += ['\n\n# the main object\n', 'o  main_structure\n']
+    # for face_index in range(gbsp_faces.elements):
+    #     if face_index not in all_face_indices:
+    #         vert_map, vert_counter, vert_lines, \
+    #         norm_map, norm_counter, norm_lines, \
+    #         tex_map, tex_counter, tex_lines, \
+    #         face_lines, last_tex_name = get_and_append_face(
+    #             face_index, gbsp,
+    #             vert_map, vert_counter, vert_lines,
+    #             norm_map, norm_counter, norm_lines,
+    #             tex_map, tex_counter, tex_lines,
+    #             face_lines, last_tex_name, True
+    #         )
 
     mtl_lines = ['# Generated with GBSPConverter\n', '# https://www.github.com/frankvollebregt/GBSPConverter\n']
     for tex_index in range(gbsp_tex.elements):
         tex_offset = tex_index * gbsp_tex.size
         tex_bytes = gbsp_tex.bytes[tex_offset:tex_offset + gbsp_tex.size]
         tex_name = tex_bytes[0:32].decode('utf-8').rstrip('\x00')
+        tex_width = int.from_bytes(tex_bytes[36:40], 'little')
+        tex_height = int.from_bytes(tex_bytes[40:44], 'little')
+
+        # Get data for the texture image
+        tex_offset = int.from_bytes(tex_bytes[44:48], 'little')
+        tex_palette_index = int.from_bytes(tex_bytes[48:52], 'little')
 
         mtl_lines += [
             '\nnewmtl {}\n'.format(tex_name),
@@ -375,6 +385,14 @@ def convert_to_obj(gbsp):
             'Ns 0.0\n',
             'map_Kd {}.png\n'.format(tex_name)
         ]
+
+        # Get the texture data and palette, and write the image to a PNG image file
+        tex_palette_offset = tex_palette_index * gbsp_palettes.size
+        tex_palette_bytes = gbsp_palettes.bytes[tex_palette_offset:tex_palette_offset + gbsp_palettes.size]
+        tex_data_bytes = gbsp_texdata.bytes[tex_offset:tex_offset + ceil(tex_width * tex_height * (85 / 64))]
+
+        # Write the png image
+        write_bitmap(my_bytes=tex_data_bytes, width=tex_width, height=tex_height, name=tex_name, palette=tex_palette_bytes, folder='models')
 
     # write the obj file
     obj_file = open('models/' + 'all_together' + '.obj', 'w')
@@ -417,15 +435,18 @@ def get_and_append_face(face_index, gbsp,
 
     plane_offset = plane_index * gbsp_planes.size
     plane_bytes = gbsp_planes.bytes[plane_offset:plane_offset + gbsp_planes.size]
-    norm_x, norm_y, norm_z = struct.unpack('fff', plane_bytes[0:12])
-    norm_length = math.sqrt(norm_x**2 + norm_y**2 + norm_z**2)
+    norm = Vec3d(struct.unpack('fff', plane_bytes[0:12]))
+    # norm_length = math.sqrt(norm.x**2 + norm.y**2 + norm.z**2)
+
+    if plane_side == 1:
+        norm.invert()
 
     # get this face's normal from the plane
     if signed_plane_index not in norm_map:
         norm_map[signed_plane_index] = norm_counter
         norm_counter += 1
 
-        norm_lines.append('vn  {}  {}  {}\n'.format(-norm_x, -norm_y, -norm_z))
+        norm_lines.append('vn  {}  {}  {}\n'.format(norm.x, norm.y, norm.z))
 
     tex_info_index = int.from_bytes(face_bytes[16:20], 'little')
     tex_info_offset = tex_info_index * gbsp_tex_info.size
@@ -433,6 +454,11 @@ def get_and_append_face(face_index, gbsp,
 
     u_axis = Vec3d(struct.unpack('fff', tex_info_bytes[0:12]))
     v_axis = Vec3d(struct.unpack('fff', tex_info_bytes[12:24]))
+
+    if plane_side == 1:
+        u_axis.invert()
+        v_axis.invert()
+
     u_offset = struct.unpack('f', tex_info_bytes[24:28])[0]
     v_offset = struct.unpack('f', tex_info_bytes[28:32])[0]
     u_scale = struct.unpack('f', tex_info_bytes[32:36])[0]
@@ -460,7 +486,7 @@ def get_and_append_face(face_index, gbsp,
     for i in range(num_verts):
         vert_index_indices.append(first_vert_index + i)
 
-    if tex_name == 'redP':
+    if tex_name == 'drwtch':
         print('u axis: {}, {}, {}\nv axis: {}, {}, {}\noffset: {}, {}\nscale: {}, {}'.format(
             u_axis.x, u_axis.y, u_axis.z, v_axis.x, v_axis.y, v_axis.z, u_offset, v_offset, u_scale, v_scale
         ))
@@ -481,20 +507,36 @@ def get_and_append_face(face_index, gbsp,
         vert_bytes = gbsp_verts.bytes[vert_offset:vert_offset + gbsp_verts.size]
         vec = Vec3d(struct.unpack('fff', vert_bytes))
 
-        vec_dot_u = vec.dot(u_axis)
-        vec_dot_v = vec.dot(v_axis)
+        vec_dot_u = vec.dot(u_axis)/u_scale
+        vec_dot_v = vec.dot(v_axis)/v_scale
 
         if vec_dot_u < min_u:
+            if tex_name == 'drwtch':
+                print('{} is smaller than {} for u'.format(vec_dot_u, min_u))
             min_u = vec_dot_u
         if vec_dot_u > max_u:
+            if tex_name == 'drwtch':
+                print('{} is greater than {} for u'.format(vec_dot_u, max_u))
             max_u = vec_dot_u
         if vec_dot_v < min_v:
+            if tex_name == 'drwtch':
+                print('{} is smaller than {} for v'.format(vec_dot_v, min_v))
             min_v = vec_dot_v
         if vec_dot_v > max_v:
+            if tex_name == 'drwtch':
+                print('{} is greater than {} for v'.format(vec_dot_v, max_v))
             max_v = vec_dot_v
 
     u_size = max_u - min_u
     v_size = max_v - min_v
+
+    if u_size < 0:
+        print('OH NOES')
+    if v_size < 0:
+        print('NO GOOD NO')
+
+    if tex_name == 'drwtch':
+        print('size: {}, {}'.format(u_size, v_size))
 
     # retrieve the vertices via the vertex index
     for vert_index_index in vert_index_indices:
@@ -518,10 +560,14 @@ def get_and_append_face(face_index, gbsp,
             vert_lines.append("v  {}  {}  {}\n".format(vec.x, vec.y, vec.z))
 
         # TODO fix this to actually work properly
-        u = (vec.dot(u_axis) + u_scale * u_offset)/(u_size+0.00000001)
-        v = (vec.dot(v_axis) + v_scale * v_offset)/(v_size+0.00000001)
+        if plane_side == 1:
+            u = (vec.dot(u_axis.get_norm()) + u_offset)/(u_size+0.00000001)
+            v = (vec.dot(v_axis.get_norm()) + v_offset)/(v_size+0.00000001)
+        else:
+            u = (-vec.dot(u_axis.get_norm()) + u_offset)/(u_size+0.00000001)
+            v = (-vec.dot(v_axis.get_norm()) + v_offset)/(v_size+0.00000001)
 
-        tex_lines.append('vt  {}  {}\n'.format(u, v))
+        tex_lines.append('vt  {}  {} # plane side {}\n'.format(u, v, plane_side))
 
         face_def += '  {}/{}/{}'.format(vert_map[vert_index], tex_counter, norm_map[signed_plane_index])
 
@@ -568,6 +614,19 @@ class Vec3d:
 
     def dot(self, other):
         return self.x * other.x + self.y * other.y + self.z * other.z
+
+    def invert(self):
+        self.x *= -1
+        self.y *= -1
+        self.z *= -1
+
+    def get_norm(self):
+        # calculate length
+        length = math.sqrt(self.x**2 + self.y**2 + self.z**2)
+        return Vec3d((self.x/length, self.y/length, self.z/length))
+
+    def get_scaled(self, scale):
+        return Vec3d((self.x*scale, self.y*scale, self.z*scale))
 
     def __str__(self):
         return 'Vec3d({}, {}, {})'.format(self.x, self.y, self.z)
