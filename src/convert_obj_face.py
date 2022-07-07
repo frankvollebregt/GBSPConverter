@@ -66,6 +66,10 @@ def get_and_append_face(face_index, gbsp,
     tex_bytes = gbsp_tex.bytes[tex_offset:tex_offset + gbsp_tex.size]
     tex_name = tex_bytes[0:32].decode('utf-8').rstrip('\x00')
 
+    # TODO remove this testing line
+    # if plane_side == PLANE_SIDE_BACK:
+
+
     # Little detour for the texture of this face
     if is_invisible(gbsp, tex_info_index) and remove_invisible:
         return vert_map, vert_counter, vert_lines, \
@@ -83,7 +87,7 @@ def get_and_append_face(face_index, gbsp,
         vert_index_indices.append(first_vert_index + i)
 
     # first, retrieve the width and height of this face (on the U/V plane)
-    u_size, v_size = get_plane_size(gbsp=gbsp, indices=vert_index_indices, u_axis=u_axis, v_axis=v_axis)
+    u_size, v_size = get_plane_size(gbsp=gbsp, indices=vert_index_indices, u_axis=u_axis, v_axis=v_axis, u_scale=u_scale, v_scale=v_scale)
 
     # retrieve the vertices via the vertex index
     for vert_index_index in vert_index_indices:
@@ -107,11 +111,8 @@ def get_and_append_face(face_index, gbsp,
             vert_lines.append("v  {}  {}  {}\n".format(vec.x, vec.y, vec.z))
 
         # TODO fix the UV maps to actually work properly
-        u = (vec.dot(u_axis) + u_offset) / u_scale / u_size
-        v = (vec.dot(v_axis) + v_offset) / v_scale / v_size
-
-        # u = (vec.dot(u_axis.get_norm()) + u_offset)/(u_size+0.00000001)
-        # v = (vec.dot(v_axis.get_norm()) + v_offset)/(v_size+0.00000001)
+        u = (vec.dot(u_axis))*u_scale
+        v = (vec.dot(v_axis))*v_scale
 
         tex_lines.append('vt  {}  {}\n'.format(u, v))
 

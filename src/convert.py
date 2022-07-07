@@ -266,16 +266,16 @@ def convert_to_ibsp(gbsp, folder_name):
         # but also water throughout the level, and part of the tree canopy (for some reason)
 
         # replace the texture info with yellow texture info if the face is not visible
-        if not is_invisible:
-            texture_info += pack('<fff', u_x / u_scale, u_y / u_scale, u_z / u_scale) + pack('<f', u_offset) + pack(
-                '<fff', v_x / v_scale, v_y / v_scale, v_z / v_scale) + pack('<f', v_offset) + tex_info_flags + pack(
-                "<I", 0)
-            texture_info += texture_name
-            texture_info += pack("<I", 0)
-        else:
-            with open('tex/ylw.bin', 'rb') as bin_file:
-                tex_info_binary = bin_file.read()
-                texture_info += tex_info_binary
+        # if not is_invisible:
+        texture_info += pack('<fff', u_x / u_scale, u_y / u_scale, u_z / u_scale) + pack('<f', u_offset) + pack(
+            '<fff', v_x / v_scale, v_y / v_scale, v_z / v_scale) + pack('<f', v_offset) + tex_info_flags + pack(
+            "<I", 0)
+        texture_info += texture_name
+        texture_info += pack("<I", 0)
+        # else:
+        #     with open('tex/ylw.bin', 'rb') as bin_file:
+        #         tex_info_binary = bin_file.read()
+        #         texture_info += tex_info_binary
 
     new_bsp['texture_info'] = {
         'elements': gbsp_tex_info.elements,
