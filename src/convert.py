@@ -270,6 +270,12 @@ def convert_to_ibsp(gbsp, folder_name):
         texture_info += pack('<fff', u_x / u_scale, u_y / u_scale, u_z / u_scale) + pack('<f', u_offset) + pack(
             '<fff', v_x / v_scale, v_y / v_scale, v_z / v_scale) + pack('<f', v_offset) + tex_info_flags + pack(
             "<I", 0)
+
+        if texture_name.decode('utf-8').rstrip('\x00') == 'redP':
+            print('---')
+            print('u axis: {}, {}, {} (scale was {}, offset was {})'.format(u_x / u_scale, u_y / u_scale, u_z / u_scale, u_scale, u_offset))
+            print('v axis: {}, {}, {} (scale was {},  offset was {})'.format(v_x / v_scale, v_y / v_scale, v_z / v_scale, v_scale, v_offset))
+
         texture_info += texture_name
         texture_info += pack("<I", 0)
         # else:

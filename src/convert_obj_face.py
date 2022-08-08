@@ -1,10 +1,10 @@
 import struct
-
+from math import trunc
 from src.gbsp import GBSPChunk
 from src.obj_helpers import Vec3d, is_invisible, get_plane_size
 
-PLANE_SIDE_FRONT = 1
-PLANE_SIDE_BACK = 0
+PLANE_SIDE_FRONT = 0
+PLANE_SIDE_BACK = 1
 
 
 def get_and_append_face(face_index, gbsp,
@@ -54,9 +54,9 @@ def get_and_append_face(face_index, gbsp,
     u_axis = Vec3d(struct.unpack('fff', tex_info_bytes[0:12]))
     v_axis = Vec3d(struct.unpack('fff', tex_info_bytes[12:24]))
 
-    if plane_side == PLANE_SIDE_BACK:
-        u_axis.invert()
-        v_axis.invert()
+    # if plane_side == PLANE_SIDE_BACK:
+    #     u_axis.invert()
+    #     v_axis.invert()
 
     u_offset, v_offset, u_scale, v_scale = struct.unpack('ffff', tex_info_bytes[24:40])
 
@@ -66,9 +66,10 @@ def get_and_append_face(face_index, gbsp,
     tex_bytes = gbsp_tex.bytes[tex_offset:tex_offset + gbsp_tex.size]
     tex_name = tex_bytes[0:32].decode('utf-8').rstrip('\x00')
 
-    # TODO remove this testing line
     # if plane_side == PLANE_SIDE_BACK:
-
+    # if tex_name == 'redP':
+    #     print('u axis: {}, {}, {} (scale was {}, offset was {})'.format(u_axis.x / u_scale, u_axis.y / u_scale, u_axis.z / u_scale, u_scale, u_offset))
+    #     print('v axis: {}, {}, {} (scale was {}, offset was {})'.format(v_axis.x / v_scale, v_axis.y / v_scale, v_axis.z / v_scale, v_scale, v_offset))
 
     # Little detour for the texture of this face
     if is_invisible(gbsp, tex_info_index) and remove_invisible:
@@ -111,8 +112,14 @@ def get_and_append_face(face_index, gbsp,
             vert_lines.append("v  {}  {}  {}\n".format(vec.x, vec.y, vec.z))
 
         # TODO fix the UV maps to actually work properly
-        u = (vec.dot(u_axis))*u_scale
-        v = (vec.dot(v_axis))*v_scale
+        u = vec.dot(u_axis) * u_scale
+        v = vec.dot(v_axis) * v_scale
+
+        # if 15939 <= tex_counter <= 15943:
+        #     print('{} is at {}, {}'.format(vec, u, v))
+        #     print('sizes: {}, {}'.format(u_size, v_size))
+        #     print('scales: {}, {}'.format(u_scale, v_scale))
+        #     print('lengths: {}, {}'.format(u_axis.get_length(), v_axis.get_length()))
 
         tex_lines.append('vt  {}  {}\n'.format(u, v))
 
@@ -122,6 +129,7 @@ def get_and_append_face(face_index, gbsp,
 
     # write the face
     face_def += '\n'
+
     face_lines.append(face_def)
 
     last_tex_name = tex_name

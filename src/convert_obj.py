@@ -114,6 +114,7 @@ def convert_to_obj(gbsp, out_path, folder_name):
                      palette=tex_palette_bytes, folder=folder_name)
 
     # write the obj file
+    print('Writing OBJ file to {}'.format(out_path + '.obj'))
     obj_file = open(out_path + '.obj', 'w')
     obj_file.writelines(all_lines)
     obj_file.writelines(vert_lines)
@@ -123,6 +124,7 @@ def convert_to_obj(gbsp, out_path, folder_name):
     obj_file.close()
 
     # write the material file
+    print('Writing MTL file to {}'.format(out_path + '.mtl'))
     mtl_file = open(out_path + '.mtl', 'w')
     mtl_file.writelines(mtl_lines)
     mtl_file.close()
