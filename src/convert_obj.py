@@ -36,51 +36,56 @@ def convert_to_obj(gbsp, out_path, folder_name):
     for model_index in range(gbsp_models.elements):
         model_index += 1
 
-        model_name = 'model_{}'.format(model_index)
 
-        face_lines += ['\n\n# the {} object\n'.format(model_name), 'o  {}\n'.format(model_name)]
+        if model_index == 44:
 
-        model_offset = model_index * gbsp_models.size
-        model_bytes = gbsp_models.bytes[model_offset:model_offset + gbsp_models.size]
+            model_name = 'model_{}'.format(model_index)
 
-        face_indices = []
+            face_lines += ['\n\n# the {} object\n'.format(model_name), 'o  {}\n'.format(model_name)]
 
-        first_face = int.from_bytes(model_bytes[44:48], 'little')
-        num_faces = int.from_bytes(model_bytes[48:52], 'little')
+            model_offset = model_index * gbsp_models.size
+            model_bytes = gbsp_models.bytes[model_offset:model_offset + gbsp_models.size]
 
-        for i in range(num_faces):
-            face_indices.append(first_face + i)
+            face_indices = []
 
-        if len(face_indices) > 0:
-            all_face_indices.update(face_indices)
+            first_face = int.from_bytes(model_bytes[44:48], 'little')
+            num_faces = int.from_bytes(model_bytes[48:52], 'little')
 
-            # retrieve the faces
-            for face_index in face_indices:
-                vert_map, vert_counter, vert_lines, \
-                norm_map, norm_counter, norm_lines, \
-                tex_counter, tex_lines, \
-                face_lines, last_tex_name = get_and_append_face(
-                    face_index, gbsp,
-                    vert_map, vert_counter, vert_lines,
-                    norm_map, norm_counter, norm_lines,
-                    tex_counter, tex_lines,
-                    face_lines, last_tex_name
-                )
+            for i in range(num_faces):
+                face_indices.append(first_face + i)
+
+            if len(face_indices) > 0:
+                all_face_indices.update(face_indices)
+
+                # retrieve the faces
+                for face_index in face_indices:
+                    vert_map, vert_counter, vert_lines, \
+                    norm_map, norm_counter, norm_lines, \
+                    tex_counter, tex_lines, \
+                    face_lines, last_tex_name = get_and_append_face(
+                        face_index, gbsp,
+                        vert_map, vert_counter, vert_lines,
+                        norm_map, norm_counter, norm_lines,
+                        tex_counter, tex_lines,
+                        face_lines, last_tex_name, True
+                    )
+            else:
+                print('no face indices?!')
 
     # Now go through the remaining faces and add them to the main object as required
     face_lines += ['\n\n# the main object\n', 'o  main_structure\n']
-    for face_index in range(gbsp_faces.elements):
-        if face_index not in all_face_indices:
-            vert_map, vert_counter, vert_lines, \
-            norm_map, norm_counter, norm_lines, \
-            tex_counter, tex_lines, \
-            face_lines, last_tex_name = get_and_append_face(
-                face_index, gbsp,
-                vert_map, vert_counter, vert_lines,
-                norm_map, norm_counter, norm_lines,
-                tex_counter, tex_lines,
-                face_lines, last_tex_name, True
-            )
+    # for face_index in range(gbsp_faces.elements):
+    #     if face_index not in all_face_indices:
+    #         vert_map, vert_counter, vert_lines, \
+    #         norm_map, norm_counter, norm_lines, \
+    #         tex_counter, tex_lines, \
+    #         face_lines, last_tex_name = get_and_append_face(
+    #             face_index, gbsp,
+    #             vert_map, vert_counter, vert_lines,
+    #             norm_map, norm_counter, norm_lines,
+    #             tex_counter, tex_lines,
+    #             face_lines, last_tex_name, True
+    #         )
 
     mtl_lines = ['# Generated with GBSPConverter\n', '# https://www.github.com/frankvollebregt/GBSPConverter\n']
     for tex_index in range(gbsp_tex.elements):

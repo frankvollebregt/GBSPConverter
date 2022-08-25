@@ -7,6 +7,9 @@ from src.gbsp import GBSPChunk
 
 # Simple vector class
 # for cleaner dot product code and vector storage
+from textures import has_transparency
+
+
 class Vec3d:
     def __init__(self, tuple):
         self.x = tuple[0]
@@ -17,9 +20,16 @@ class Vec3d:
         return self.x * other.x + self.y * other.y + self.z * other.z
 
     def invert(self):
-        self.x *= -1
-        self.y *= -1
-        self.z *= -1
+        return self.get_scaled(-1)
+
+    def add(self, other):
+        return Vec3d((self.x + other.x, self.y + other.y, self.z + other.z))
+
+    def subtract(self, other):
+        return self.add(other.get_scaled(-1))
+
+    def multiply(self, other):
+        return Vec3d((self.x * other.x, self.y * other.y, self.z * other.z))
 
     def get_norm(self):
         # calculate length
@@ -79,7 +89,7 @@ def get_plane_size(gbsp, indices, u_axis: Vec3d, v_axis: Vec3d, u_scale, v_scale
     return u_size, v_size
 
 
-def is_invisible(gbsp, tex_info_index):
+def is_invisible(gbsp, tex_info_index, tex_bytes):
     gbsp_tex_info: GBSPChunk = gbsp[17]
     gbsp_texdata: GBSPChunk = gbsp[18]
 
@@ -91,16 +101,13 @@ def is_invisible(gbsp, tex_info_index):
 
     tex_data_bytes = gbsp_texdata.bytes[texture_offset:texture_offset + math.ceil(tex_width * tex_height * (85 / 64))]
 
-    has_transparency = False
-    for byte in tex_data_bytes:
-        if byte == 255:
-            has_transparency = True
+    transparent = has_transparency(tex_bytes)
 
     # We only need the flags
     tex_info_flags = tex_info_bytes[40:44]
     flag_bits = [access_bit(tex_info_flags, i) for i in range(len(tex_info_flags) * 8)]
 
-    return (flag_bits[2] == 1 or flag_bits[4] == 1) and not has_transparency
+    return flag_bits[2] == 1
 
 
 # Thanks SO! https://stackoverflow.com/a/43787831/15469537

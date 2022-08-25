@@ -36,6 +36,14 @@ def write_bitmap(my_bytes: bytes, width, height, name, palette, folder):
     return False
 
 
+# return whether or not this image has any transparency in it (index 255 was used)
+def has_transparency(my_bytes: bytes):
+    for byte in my_bytes:
+        if byte == 255:
+            return True
+    return False
+
+
 # no longer in use, as we can extract the BMPs directly from the BSP data
 # def write_wal(bytes, width, height, name: bytes, folder):
 #     with open(folder+'/'+name.decode('utf-8').rstrip('\x00')+'.wal', 'wb') as wal_file:

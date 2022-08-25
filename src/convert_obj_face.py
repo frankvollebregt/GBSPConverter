@@ -36,9 +36,10 @@ def get_and_append_face(face_index, gbsp,
     plane_offset = plane_index * gbsp_planes.size
     plane_bytes = gbsp_planes.bytes[plane_offset:plane_offset + gbsp_planes.size]
     norm = Vec3d(struct.unpack('fff', plane_bytes[0:12]))
+    plane_type = int.from_bytes(plane_bytes[16:20], 'little')
 
     if plane_side == PLANE_SIDE_BACK:
-        norm.invert()
+        norm = norm.invert()
 
     # get this face's normal from the plane
     if signed_plane_index not in norm_map:
@@ -54,9 +55,12 @@ def get_and_append_face(face_index, gbsp,
     u_axis = Vec3d(struct.unpack('fff', tex_info_bytes[0:12]))
     v_axis = Vec3d(struct.unpack('fff', tex_info_bytes[12:24]))
 
+
     # if plane_side == PLANE_SIDE_BACK:
-    #     u_axis.invert()
-    #     v_axis.invert()
+    # u_axis = u_axis.multiply(Vec3d((1, -1, 1)))
+    # v_axis = v_axis.multiply(Vec3d((1, -1, 1)))
+    # u_axis = u_axis.invert()
+    # v_axis = v_axis.invert()
 
     u_offset, v_offset, u_scale, v_scale = struct.unpack('ffff', tex_info_bytes[24:40])
 
@@ -65,6 +69,8 @@ def get_and_append_face(face_index, gbsp,
     tex_offset = tex_index * gbsp_tex.size
     tex_bytes = gbsp_tex.bytes[tex_offset:tex_offset + gbsp_tex.size]
     tex_name = tex_bytes[0:32].decode('utf-8').rstrip('\x00')
+    tex_width = int.from_bytes(tex_bytes[36:40], 'little')
+    tex_height = int.from_bytes(tex_bytes[40:44], 'little')
 
     # if plane_side == PLANE_SIDE_BACK:
     # if tex_name == 'redP':
@@ -72,7 +78,7 @@ def get_and_append_face(face_index, gbsp,
     #     print('v axis: {}, {}, {} (scale was {}, offset was {})'.format(v_axis.x / v_scale, v_axis.y / v_scale, v_axis.z / v_scale, v_scale, v_offset))
 
     # Little detour for the texture of this face
-    if is_invisible(gbsp, tex_info_index) and remove_invisible:
+    if is_invisible(gbsp, tex_info_index, tex_bytes) and remove_invisible:
         return vert_map, vert_counter, vert_lines, \
                norm_map, norm_counter, norm_lines, \
                tex_counter, tex_lines, \
@@ -88,7 +94,7 @@ def get_and_append_face(face_index, gbsp,
         vert_index_indices.append(first_vert_index + i)
 
     # first, retrieve the width and height of this face (on the U/V plane)
-    u_size, v_size = get_plane_size(gbsp=gbsp, indices=vert_index_indices, u_axis=u_axis, v_axis=v_axis, u_scale=u_scale, v_scale=v_scale)
+    # u_size, v_size = get_plane_size(gbsp=gbsp, indices=vert_index_indices, u_axis=u_axis, v_axis=v_axis, u_scale=u_scale, v_scale=v_scale)
 
     # retrieve the vertices via the vertex index
     for vert_index_index in vert_index_indices:
@@ -109,17 +115,25 @@ def get_and_append_face(face_index, gbsp,
 
         # write the vertex
         if new_vert:
+            vec = vec.subtract(Vec3d((366.829468, -119.750000, -982.090210)))
             vert_lines.append("v  {}  {}  {}\n".format(vec.x, vec.y, vec.z))
 
-        # TODO fix the UV maps to actually work properly
-        u = vec.dot(u_axis) * u_scale
-        v = vec.dot(v_axis) * v_scale
+        if vec.subtract(Vec3d((-484, 0, 1816))).get_length() < 0.1 and tex_name == 'Wdgrn':
+            print('found the correct vert')
+            print('tex_name is {}'.format(tex_name))
+            print(plane_side)
+            print(u_axis)
+            print(v_axis)
+            print(plane_type)
 
-        # if 15939 <= tex_counter <= 15943:
-        #     print('{} is at {}, {}'.format(vec, u, v))
-        #     print('sizes: {}, {}'.format(u_size, v_size))
-        #     print('scales: {}, {}'.format(u_scale, v_scale))
-        #     print('lengths: {}, {}'.format(u_axis.get_length(), v_axis.get_length()))
+        # TODO fix the UV maps to actually work properly
+        u = vec.dot(u_axis)/u_scale/tex_width
+        v = vec.dot(v_axis)/v_scale/tex_height
+
+        u += u_offset/tex_width
+        v += v_offset/tex_height
+
+        v *= -1
 
         tex_lines.append('vt  {}  {}\n'.format(u, v))
 

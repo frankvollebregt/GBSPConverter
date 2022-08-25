@@ -100,6 +100,15 @@ def convert_to_ibsp(gbsp, folder_name):
     with open(folder + 'motions.mot', 'wb') as motion_file:
         motion_file.write(gbsp_motions.bytes)
 
+    print('write entities to .txt file')
+    gbsp_ents: GBSPChunk = gbsp[16]
+    if len(folder_name) > 0:
+        folder = folder_name + '/'
+    else:
+        folder = folder_name
+    with open(folder + 'entities.txt', 'wb') as ent_file:
+        ent_file.write(gbsp_ents.bytes)
+
     print('convert leafs')
     gbsp_leafs = gbsp[4]
     ibsp_leafs = b''
