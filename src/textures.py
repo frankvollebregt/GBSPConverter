@@ -26,8 +26,8 @@ def write_bitmap(my_bytes: bytes, width, height, name, palette, folder):
 
     image = Image.fromarray(data)
 
-    if not exists(folder+name+'.png') or True:
-        image.save(folder+name + '.png')
+    if not exists(folder+name+'.tiff') or True:
+        image.save(folder+name + '.tiff')
 
     # return whether or not this image had any transparency in it (index 255 was used)
     for byte in my_bytes:
@@ -42,25 +42,3 @@ def has_transparency(my_bytes: bytes):
         if byte == 255:
             return True
     return False
-
-
-# no longer in use, as we can extract the BMPs directly from the BSP data
-# def write_wal(bytes, width, height, name: bytes, folder):
-#     with open(folder+'/'+name.decode('utf-8').rstrip('\x00')+'.wal', 'wb') as wal_file:
-#         wal_file.write(name)
-#         wal_file.write(width)
-#         wal_file.write(height)
-#
-#         # mipmap level offsets
-#         w = int.from_bytes(width, 'little')
-#         h = int.from_bytes(height, 'little')
-#         wal_file.write(pack("<iiii", 100, ceil(100 + w*h), ceil(100 + w*h + w/2*h/2), ceil(100+ w*h + w/2*h/4 + w/2*h/4)))
-#         # no next name
-#         wal_file.write(b''.join([pack("<B", 0) for my_i in range(32)]))
-#         wal_file.write(pack("<III", 0, 0, 0))
-#
-#         # body
-#         wal_file.write(bytes)
-
-
-

@@ -1,5 +1,4 @@
 import struct
-from math import trunc
 from src.gbsp import GBSPChunk
 from src.obj_helpers import Vec3d, is_invisible, get_plane_size
 
@@ -55,13 +54,6 @@ def get_and_append_face(face_index, gbsp,
     u_axis = Vec3d(struct.unpack('fff', tex_info_bytes[0:12]))
     v_axis = Vec3d(struct.unpack('fff', tex_info_bytes[12:24]))
 
-
-    # if plane_side == PLANE_SIDE_BACK:
-    # u_axis = u_axis.multiply(Vec3d((1, -1, 1)))
-    # v_axis = v_axis.multiply(Vec3d((1, -1, 1)))
-    # u_axis = u_axis.invert()
-    # v_axis = v_axis.invert()
-
     u_offset, v_offset, u_scale, v_scale = struct.unpack('ffff', tex_info_bytes[24:40])
 
     tex_index = int.from_bytes(tex_info_bytes[60:64], 'little')
@@ -71,11 +63,6 @@ def get_and_append_face(face_index, gbsp,
     tex_name = tex_bytes[0:32].decode('utf-8').rstrip('\x00')
     tex_width = int.from_bytes(tex_bytes[36:40], 'little')
     tex_height = int.from_bytes(tex_bytes[40:44], 'little')
-
-    # if plane_side == PLANE_SIDE_BACK:
-    # if tex_name == 'redP':
-    #     print('u axis: {}, {}, {} (scale was {}, offset was {})'.format(u_axis.x / u_scale, u_axis.y / u_scale, u_axis.z / u_scale, u_scale, u_offset))
-    #     print('v axis: {}, {}, {} (scale was {}, offset was {})'.format(v_axis.x / v_scale, v_axis.y / v_scale, v_axis.z / v_scale, v_scale, v_offset))
 
     # Little detour for the texture of this face
     if is_invisible(gbsp, tex_info_index, tex_bytes) and remove_invisible:
@@ -93,10 +80,8 @@ def get_and_append_face(face_index, gbsp,
     for i in range(num_verts):
         vert_index_indices.append(first_vert_index + i)
 
-    # first, retrieve the width and height of this face (on the U/V plane)
-    # u_size, v_size = get_plane_size(gbsp=gbsp, indices=vert_index_indices, u_axis=u_axis, v_axis=v_axis, u_scale=u_scale, v_scale=v_scale)
-
     # retrieve the vertices via the vertex index
+    vert_index_indices.reverse()
     for vert_index_index in vert_index_indices:
         vert_index_offset = vert_index_index * gbsp_vert_index.size
         vert_index_bytes = gbsp_vert_index.bytes[vert_index_offset:vert_index_offset + gbsp_vert_index.size]
@@ -115,24 +100,15 @@ def get_and_append_face(face_index, gbsp,
 
         # write the vertex
         if new_vert:
-            vec = vec.subtract(Vec3d((366.829468, -119.750000, -982.090210)))
             vert_lines.append("v  {}  {}  {}\n".format(vec.x, vec.y, vec.z))
 
-        if vec.subtract(Vec3d((-484, 0, 1816))).get_length() < 0.1 and tex_name == 'Wdgrn':
-            print('found the correct vert')
-            print('tex_name is {}'.format(tex_name))
-            print(plane_side)
-            print(u_axis)
-            print(v_axis)
-            print(plane_type)
-
-        # TODO fix the UV maps to actually work properly
         u = vec.dot(u_axis)/u_scale/tex_width
         v = vec.dot(v_axis)/v_scale/tex_height
 
         u += u_offset/tex_width
         v += v_offset/tex_height
 
+        # flip textures vertically
         v *= -1
 
         tex_lines.append('vt  {}  {}\n'.format(u, v))
