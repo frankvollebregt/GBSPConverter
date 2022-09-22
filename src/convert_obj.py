@@ -16,7 +16,7 @@ def convert_to_obj(gbsp, out_path, folder_name):
     gbsp_palettes: GBSPChunk = gbsp[23]
 
     all_lines = ['# Generated with GBSPConverter\n', '# https://www.github.com/frankvollebregt/GBSPConverter\n\n',
-                 'mtllib ' + out_path.split('/')[-1] + '.mtl\n']
+                 'mtllib ' + out_path.split('/')[-1] + '.mtl\n', 's  1']
     vert_lines = ['# verts\n']
     norm_lines = ['# vert normals\n']
     tex_lines = ['# vert textures\n']
@@ -69,6 +69,7 @@ def convert_to_obj(gbsp, out_path, folder_name):
 
     # Now go through the remaining faces and add them to the main object as required
     face_lines += ['\n\n# the main object\n', 'o  main_structure\n']
+    print('### main structure ###')
     for face_index in range(gbsp_faces.elements):
         if face_index not in all_face_indices:
             vert_map, vert_counter, vert_lines, \
@@ -90,6 +91,9 @@ def convert_to_obj(gbsp, out_path, folder_name):
         tex_width = int.from_bytes(tex_bytes[36:40], 'little')
         tex_height = int.from_bytes(tex_bytes[40:44], 'little')
 
+        # Change the texture name so it's different than the material name
+        tex_name = tex_name
+
         # Get data for the texture image
         tex_offset = int.from_bytes(tex_bytes[44:48], 'little')
         tex_palette_index = int.from_bytes(tex_bytes[48:52], 'little')
@@ -102,7 +106,7 @@ def convert_to_obj(gbsp, out_path, folder_name):
             'illum 1\n',
             'Ns 0.0\n',
             'Tr alpha\n',
-            'map_Kd {}.tiff\n'.format(tex_name)
+            'map_Kd {}_tex.tiff\n'.format(tex_name)
         ]
 
         # Get the texture data and palette, and write the image to a PNG image file
@@ -111,7 +115,7 @@ def convert_to_obj(gbsp, out_path, folder_name):
         tex_data_bytes = gbsp_texdata.bytes[tex_offset:tex_offset + ceil(tex_width * tex_height * (85 / 64))]
 
         # Write the png image
-        write_bitmap(my_bytes=tex_data_bytes, width=tex_width, height=tex_height, name=tex_name,
+        write_bitmap(my_bytes=tex_data_bytes, width=tex_width, height=tex_height, name=tex_name+'_tex',
                      palette=tex_palette_bytes, folder=folder_name)
 
     # write the obj file
