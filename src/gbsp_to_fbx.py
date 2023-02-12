@@ -1,6 +1,6 @@
 import sys
 
-from src.convert_fbx import convert_to_fbx
+from src.convert_fbx import convert_to_fbx, output_other_files
 from src.gbsp_to_ibsp import read_gbsp_file
 
 
@@ -25,4 +25,5 @@ if __name__ == '__main__':
     path = sys.argv[1]
     gbsp = read_gbsp_file(path)
 
-    convert_to_fbx(gbsp, out_path, folder_name)
+    convert_to_fbx(gbsp, out_path, folder_name, True)
+    # output_other_files(gbsp, out_path)

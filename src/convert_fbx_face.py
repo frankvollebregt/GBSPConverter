@@ -136,7 +136,7 @@ PLANE_SIDE_BACK = 1
 #     #        face_lines, last_tex_name
 
 
-def get_and_append_face_fbx(gbsp, face_index, tex_names, vertex_array, normal_array, uv_array, polygons, remove_invisible=False):
+def get_and_append_face_fbx(gbsp, face_index, tex_names, vertex_array, normal_array, uv_array, polygons, remove_invisible=True):
     # Get the data chunks from the GBSP file
     gbsp_planes: GBSPChunk = gbsp[10]
     gbsp_faces: GBSPChunk = gbsp[11]
@@ -162,7 +162,7 @@ def get_and_append_face_fbx(gbsp, face_index, tex_names, vertex_array, normal_ar
     norm = FbxVector4(struct.unpack('f', plane_bytes[0:4])[0], struct.unpack('f', plane_bytes[4:8])[0], struct.unpack('f', plane_bytes[8:12])[0])
     plane_type = int.from_bytes(plane_bytes[16:20], 'little')
 
-    if plane_side == PLANE_SIDE_BACK:
+    if plane_side == PLANE_SIDE_FRONT:
         norm = FbxVector4(-1*struct.unpack('f', plane_bytes[0:4])[0], -1*struct.unpack('f', plane_bytes[4:8])[0], -1*struct.unpack('f', plane_bytes[8:12])[0])
 
     # Add normal to the array (if needed)
@@ -174,6 +174,9 @@ def get_and_append_face_fbx(gbsp, face_index, tex_names, vertex_array, normal_ar
     tex_info_index = int.from_bytes(face_bytes[16:20], 'little')
     tex_info_offset = tex_info_index * gbsp_tex_info.size
     tex_info_bytes = gbsp_tex_info.bytes[tex_info_offset:tex_info_offset + gbsp_tex_info.size]
+
+    tex_info_flags = tex_info_bytes[40:44]
+    flag_bits = [access_bit(tex_info_flags, i) for i in range(len(tex_info_flags) * 8)]
 
     u_axis = Vec3d(struct.unpack('fff', tex_info_bytes[0:12]))
     v_axis = Vec3d(struct.unpack('fff', tex_info_bytes[12:24]))
@@ -191,7 +194,7 @@ def get_and_append_face_fbx(gbsp, face_index, tex_names, vertex_array, normal_ar
     texture_index = tex_names.index(tex_name)
 
     # Little detour for the texture of this face
-    if is_invisible(gbsp, tex_info_index, tex_bytes) and remove_invisible:
+    if remove_invisible and flag_bits[2] == 1:
         return vertex_array, normal_array, uv_array, polygons
 
     for i in range(num_verts):
@@ -232,36 +235,23 @@ def get_and_append_face_fbx(gbsp, face_index, tex_names, vertex_array, normal_ar
 
         uv_indices.append(uv_array.index(FbxVector2(u, v)))
 
-    # polygons.append(polygon)
-    # texture_names.append(tex_name)
-    polygons.append(Polygon(texture_index, polygon_vertices, norm_index, uv_indices))
+    polygons.append([texture_index, polygon_vertices, norm_index, uv_indices])
 
     return vertex_array, normal_array, uv_array, polygons
 
 
-class Polygon:
-    def __init__(self, texture_index, vert_indices, normal_index, uvs):
-        self.texture_index = texture_index
-        self.vert_indices = vert_indices
-        self.normal_index = normal_index
-        self.uvs = uvs
+# class Polygon:
+#     def __init__(self, texture_index, vert_indices, normal_index, uvs):
+#         self.texture_index = texture_index
+#         self.vert_indices = vert_indices
+#         self.normal_index = normal_index
+#         self.uvs = uvs
+#
+#     def __str__(self):
+#         return "Polygon:\n  texture_index: {},\n  vert_indices: {},\n  normal_index: {},\n  uvs: {}\n".format(self.texture_index, self.vert_indices, self.normal_index, self.uvs)
 
-    def add_to_mesh(
-        self,
-        mesh: FbxMesh,
-        normal: FbxLayerElementNormal,
-        uv: FbxLayerElementUV,
-    ):
-        mesh.BeginPolygon(self.texture_index)
-        normal.GetIndexArray().Add(self.normal_index)
-        for index in self.vert_indices:
-            mesh.AddPolygon(index)
-        mesh.EndPolygon()
-
-        for i in range(len(self.uvs)):
-            uv.GetIndexArray().SetAt(i, self.uvs[i])
-
-        return mesh, normal, uv
-
-    def __str__(self):
-        return "Polygon:\n  texture_index: {},\n  vert_indices: {},\n  normal_index: {},\n  uvs: {}\n".format(self.texture_index, self.vert_indices, self.normal_index, self.uvs)
+# Thanks SO! https://stackoverflow.com/a/43787831/15469537
+def access_bit(data, num):
+    base = int(num // 8)
+    shift = int(num % 8)
+    return (data[base] >> shift) & 0x1

@@ -26,8 +26,8 @@ def write_bitmap(my_bytes: bytes, width, height, name, palette, folder):
 
     image = Image.fromarray(data)
 
-    if not exists(folder+name+'.tiff') or True:
-        image.save(folder+name + '.tiff')
+    if not exists(folder+name+'.png') or True:
+        image.save(folder+name + '.png')
 
     # return whether or not this image had any transparency in it (index 255 was used)
     for byte in my_bytes:
