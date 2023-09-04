@@ -1,7 +1,7 @@
 import sys
 
-from src.convert_obj import convert_to_obj
-from src.gbsp_to_ibsp import read_gbsp_file
+from convert_obj import convert_to_obj
+from gbsp_to_ibsp import read_gbsp_file
 
 
 if __name__ == '__main__':

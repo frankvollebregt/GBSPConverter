@@ -1,6 +1,6 @@
 import struct
-from src.gbsp import GBSPChunk
-from src.obj_helpers import Vec3d, is_invisible, get_plane_size
+from gbsp import GBSPChunk
+from obj_helpers import Vec3d, is_invisible, get_plane_size
 
 PLANE_SIDE_FRONT = 0
 PLANE_SIDE_BACK = 1

@@ -1,8 +1,8 @@
 from math import ceil
 
-from src.convert_obj_face import get_and_append_face
-from src.gbsp import GBSPChunk
-from src.textures import write_bitmap
+from convert_obj_face import get_and_append_face
+from gbsp import GBSPChunk
+from textures import write_bitmap
 
 
 def convert_to_obj(gbsp, out_path, folder_name):

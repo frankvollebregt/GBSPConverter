@@ -1,4 +1,4 @@
-from src.gbsp import HeaderLump
+from gbsp import HeaderLump
 import sys
 
 IBSP_TYPES = {

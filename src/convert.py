@@ -1,11 +1,11 @@
 import struct
 from math import ceil
 
-from src.gbsp import GBSPChunk
+from gbsp import GBSPChunk
 from struct import pack
 
-from src.obj_helpers import access_bit
-from src.textures import write_bitmap
+from obj_helpers import access_bit
+from textures import write_bitmap
 
 
 # Convert the map of GBSP chunk objects to a map of IBSP data

@@ -2,7 +2,7 @@ import math
 import struct
 import sys
 
-from src.gbsp import GBSPChunk
+from gbsp import GBSPChunk
 
 
 # Simple vector class
